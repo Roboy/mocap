@@ -53,7 +53,7 @@ catkin_make
 #!bash
 cd path/to/mocap
 source devel/setup.bash
-rosrun mocap trackingNode
-rosrun mocap visionNode
+rosrun tracking_node tracking_node
+rosrun vision_node vision_node
 ```
 you need to add a subscriber to the ros topic '/visualization_marker', otherwise the tracking does not start. You can use a custom subscriber or rviz (in rviz click on add -> by topic -> marker, green oriented cubes should appear while tracking). 
