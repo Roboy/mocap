@@ -8,8 +8,8 @@
 // raspicamera
 #include <raspicam/raspicam_cv.h>
 
-#define WIDTH 640
-#define HEIGHT 480
+#define WIDTH 2592
+#define HEIGHT 1944
 
 int threshold_value = 240;
 
@@ -78,16 +78,16 @@ int main(int argc, char *argv[]) {
         cv::Mat img;
         camera.grab();
         camera.retrieve ( img);
-        // undistort
-        cv::remap(img, img, map1, map2, cv::INTER_CUBIC);
-        cv::flip(img, img, 1);
+
         if (img.empty())
             continue;
+        // undistort
+        cv::remap(img, img_rectified, map1, map2, cv::INTER_CUBIC);
+        cv::flip(img_rectified, img_rectified, 1);
         cv::Mat img_gray;
-        cv::cvtColor(img, img_gray, CV_BGR2GRAY);
 
         cv::Mat filtered_img;
-        cv::threshold(img_gray, filtered_img, threshold_value, 255, 3);
+        cv::threshold(img_rectified, filtered_img, threshold_value, 255, 3);
 
         cv::Mat erodeElement = cv::getStructuringElement(2, cv::Size(3, 3), cv::Point(1, 1));
         cv::Mat dilateElement = cv::getStructuringElement(2, cv::Size(5, 5), cv::Point(3, 3));
@@ -127,6 +127,9 @@ int main(int argc, char *argv[]) {
             markerPosition.marker_position.push_back(pos);
         }
         marker_position_pub.publish(markerPosition);
+
+	//cv::imshow("raspi camera", img);
+	//cv::waitKey(0);
     }
 
     camera.release();
