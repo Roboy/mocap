@@ -37,24 +37,23 @@ sudo make install
 ## checkout 
 ```
 #!bash
-git clone https://github.com/Roboy/markertracker
-cd path/to/markertracker
+git clone https://github.com/Roboy/mocap
+cd path/to/mocap
 git submodule init
 git submoulde update
 ```
 ## build
 ```
 #!bash
-cd path/to/markertracker
-mkdir build
-cd build
-cmake ..
-make 
+cd path/to/mocap
+catkin_make
 ```
 ## run
 ```
 #!bash
-cd path/to/markertracker/build/devel/lib/markertracker
-./markertracker
+cd path/to/mocap
+source devel/setup.bash
+rosrun mocap trackingNode
+rosrun mocap visionNode
 ```
 you need to add a subscriber to the ros topic '/visualization_marker', otherwise the tracking does not start. You can use a custom subscriber or rviz (in rviz click on add -> by topic -> marker, green oriented cubes should appear while tracking). 
