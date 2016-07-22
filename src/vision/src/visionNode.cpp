@@ -1,6 +1,6 @@
 // ros
 #include <ros/ros.h>
-#include <vision_node/MarkerPosition.h>
+#include <communication/MarkerPosition.h>
 
 // opencv
 #include "opencv2/opencv.hpp"
@@ -18,7 +18,7 @@ using namespace cv;
 
 int main(int argc, char *argv[]) {
     Mat cameraMatrix, distCoeffs;
-    cv::FileStorage fs("intrinsics.xml", cv::FileStorage::READ);
+    cv::FileStorage fs("/home/letrend/workspace/mocap/src/intrinsics.xml", cv::FileStorage::READ);
     if(!fs.isOpened()){
         ROS_ERROR("could not open intrinsics.xml");
         return -1;
@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
     ros::NodeHandle nh;
     ros::Publisher marker_position_pub;
     ros::Subscriber initialize_sub;
-    marker_position_pub = nh.advertise<vision_node::MarkerPosition>("/raspicamera/marker_position", 1000);
+    marker_position_pub = nh.advertise<communication::MarkerPosition>("/raspicamera/marker_position", 1000);
 
     // Publish the marker
     while (marker_position_pub.getNumSubscribers() < 1)
@@ -66,17 +66,14 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-        cv::imshow("raspi camera", image);
-        cv::waitKey(1);
-    cout<<"Stop camera..."<<endl;
-    camera.release();
-
     while (ros::ok()){
         static uint next_id = 0;
-        vision_node::MarkerPosition markerPosition;
+        communication::MarkerPosition markerPosition;
         markerPosition.header.frame_id = "map";
         markerPosition.header.stamp = ros::Time::now();
         markerPosition.header.seq = next_id++;
+
+	markerPosition.cameraID = 0;
 
         cv::Mat img;
         camera.grab();
@@ -124,13 +121,15 @@ int main(int argc, char *argv[]) {
             drawContours(img, contours, idx, cv::Scalar(255, 0, 0), 4, 8, hierarchy, 0,
                          cv::Point());
             minEnclosingCircle(contours[idx], centers[idx], radius[idx]);
-            vision_node::Vector2 pos;
+            communication::Vector2 pos;
             pos.x = centers[idx].x;
             pos.y = centers[idx].y;
             markerPosition.marker_position.push_back(pos);
         }
         marker_position_pub.publish(markerPosition);
     }
+
+    camera.release();
 
     return 0;
 }

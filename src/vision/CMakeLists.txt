@@ -10,7 +10,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 SET(CMAKE_BUILD_TYPE Debug FORCE)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++11")
 
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
+SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} /usr/local/lib/cmake)
 
 execute_process(COMMAND grep -o BCM2709 /proc/cpuinfo OUTPUT_VARIABLE IAMRASPBERRYPI3)
 if (NOT IAMRASPBERRYPI3)
@@ -20,19 +20,8 @@ else ()
     # Dependencies
     #==============================================================================
     # ros
-    find_package(catkin REQUIRED COMPONENTS roscpp std_msgs geometry_msgs message_generation)
-
-    add_message_files(
-            DIRECTORY
-            msgs
-            FILES
-            MarkerPosition.msg
-            Vector2.msg
-    )
-
-    generate_messages(DEPENDENCIES std_msgs geometry_msgs)
-
-    catkin_package(CATKIN_DEPENDS message_runtime message_generation)
+    find_package(catkin REQUIRED COMPONENTS roscpp std_msgs)
+    catkin_package(CATKIN_DEPENDS message_runtime)
 
     # OpenCV
     find_package(OpenCV COMPONENTS opencv_core opencv_highgui opencv_imgproc opencv_calib3d REQUIRED)
