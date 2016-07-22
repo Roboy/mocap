@@ -42,6 +42,11 @@ ActionState NextState(ActionState s)
 
 
 int main(int argc, char *argv[]) {
+    ros::init(argc, argv, "tracking_node");
+    ros::NodeHandle nh;
+    ros::Publisher rviz_marker_pub;
+    rviz_marker_pub=nh.advertise<visualization_msgs::Marker>("/visualization_marker", 1000);
+
     // create sfml window
     sf::ContextSettings settings;
     settings.depthBits = 24;
@@ -64,23 +69,18 @@ int main(int argc, char *argv[]) {
     Matrix4f pose_sphere = Matrix4f::Identity();
 
     ActionState currentState = Render;
-
-    ros::init(argc, argv, "tracking_node");
-    ros::NodeHandle nh;
-    ros::Publisher rviz_marker_pub;
-    rviz_marker_pub=nh.advertise<visualization_msgs::Marker>("/visualization_marker", 1000);
-    // Publish the marker
-    while (rviz_marker_pub.getNumSubscribers() < 1)
-    {
-        ros::Duration d(1.0);
-        if (!ros::ok())
-        {
-            return 0;
-        }
-        ROS_WARN_ONCE("Please create a subscriber to the marker");
-        d.sleep();
-    }
-    ROS_INFO_ONCE("Found subscriber");
+//    // Publish the marker
+//    while (rviz_marker_pub.getNumSubscribers() < 1)
+//    {
+//        ros::Duration d(1.0);
+//        if (!ros::ok())
+//        {
+//            return 0;
+//        }
+//        ROS_WARN_ONCE("Please create a subscriber to the marker");
+//        d.sleep();
+//    }
+//    ROS_INFO_ONCE("Found subscriber");
     ros::AsyncSpinner spinner(1);
     spinner.start();
 
@@ -127,8 +127,8 @@ int main(int argc, char *argv[]) {
                 marker.type = visualization_msgs::Marker::CUBE;
                 marker.action = visualization_msgs::Marker::ADD;
                 Vector3f position = pose_sphere.topRightCorner(3,1);
-                if(ros::Time::now().sec%10==0)
-                    printf("( %.4f, %.4f, %.4f )\n", position(0), position(1), position(2));
+//                if(ros::Time::now().sec%10==0)
+//                    printf("( %.4f, %.4f, %.4f )\n", position(0), position(1), position(2));
                 Matrix3f pose = pose_sphere.topLeftCorner(3,3);
                 Quaternionf q(pose);
                 marker.pose.position.x = position(0);
