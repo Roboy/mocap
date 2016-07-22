@@ -25,8 +25,10 @@ else ()
 
     # OpenCV
     find_package(OpenCV COMPONENTS opencv_core opencv_highgui opencv_imgproc opencv_calib3d REQUIRED)
+
     # raspi camera
-    find_package(raspicam REQUIRED)
+    find_package(picam REQUIRED)
+    include_directories(picam_INCLUDE_DIRECTORIES)
 
     include_directories(
             ${catkin_INCLUDE_DIRS}
@@ -35,8 +37,7 @@ else ()
     #==============================================================================
     # Application
     #==============================================================================
-
-    ADD_EXECUTABLE(vision_node src/visionNode.cpp)
+    ADD_EXECUTABLE(vision_node src/visionNode.cpp src/main.cpp)
     add_dependencies(vision_node communication_gencpp)
-    TARGET_LINK_LIBRARIES(vision_node ${OpenCV_LIBS} ${catkin_LIBRARIES} ${raspicam_CV_LIBS} -lpthread)
+    TARGET_LINK_LIBRARIES(vision_node ${OpenCV_LIBS} ${catkin_LIBRARIES} ${picam_LIBRARIES} -lpthread)
 endif ()
