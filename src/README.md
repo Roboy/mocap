@@ -49,11 +49,25 @@ cd path/to/mocap
 catkin_make
 ```
 ## run
+###On the host 
+add to ~/.bashrc your IP address (you can check you IP with ifconfig), eg:
+```
+#!bash
+export ROS_MASTER_URI=http://192.168.2.106:113311
+```
+Then start the tracking node:
 ```
 #!bash
 cd path/to/mocap
 source devel/setup.bash
 rosrun tracking_node tracking_node
-rosrun vision_node vision_node
 ```
-you need to add a subscriber to the ros topic '/visualization_marker', otherwise the tracking does not start. You can use a custom subscriber or rviz (in rviz click on add -> by topic -> marker, green oriented cubes should appear while tracking). 
+###On the raspberry pi 
+enter root shell (for access to camera), export same IP as your host and start the node:
+```
+#!bash
+cd path/to/mocap/devel/lib/vision_node
+sudo -s
+export ROS_MASTER_URI=http://192.168.2.106:113311
+./vision_node
+```
