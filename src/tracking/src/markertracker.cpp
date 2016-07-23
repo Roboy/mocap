@@ -283,7 +283,7 @@ int CameraMarkerModel::operator()(const VectorXd &x, VectorXd &fvec) const
 MarkerTracker::MarkerTracker(){
     spinner = new ros::AsyncSpinner(5);
     spinner->start();
-    marker_position_sub = nh.subscribe("/raspicamera/marker_position", 1, &MarkerTracker::pipe2function, this);
+    marker_position_sub = nh.subscribe("/raspicamera/marker_position", 1000, &MarkerTracker::pipe2function, this);
 }
 
 MarkerTracker::~MarkerTracker() {
@@ -311,7 +311,19 @@ void MarkerTracker::pipe2function(const communication::MarkerPosition::ConstPtr&
                 break;
             }
             case Initialized:{
-                cameraState[msg->cameraID] = Tracking; // TODO: possibly find trafo between cameras here
+                bool allInitialized = true;
+                for(auto state = cameraState.begin(); state != cameraState.end(); ++state){
+                    if(state->second==Uninitialized)
+                        allInitialized = false;
+                }
+                if(allInitialized) { // if all cameras are initialized, set initialized flag and cameraState to Tracking
+                    initialized = true;
+                    for(auto state = cameraState.begin(); state != cameraState.end(); ++state) {
+                        state->second = Tracking; // TODO: possibly find trafo between cameras here
+                    }
+                }else{
+                    initialized = false;
+                }
                 break;
             }
             case Tracking:{
@@ -324,7 +336,8 @@ void MarkerTracker::pipe2function(const communication::MarkerPosition::ConstPtr&
             }
         }
     }else{ // register new camera
-        camera[msg->cameraID];
+        camera[msg->cameraID].id = msg->cameraID;
+        sprintf(camera[msg->cameraID].name, "camera %d", msg->cameraID);
         cameraState[msg->cameraID] = Uninitialized;
     }
 }
