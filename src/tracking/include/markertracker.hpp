@@ -23,6 +23,7 @@
 #include <ros/ros.h>
 #include <communication/Vector2.h>
 #include <communication/MarkerPosition.h>
+#include <visualization_msgs/Marker.h>
 
 #define MARKER 4
 using namespace std;
@@ -119,6 +120,7 @@ public:
 private:
     ros::AsyncSpinner *spinner;
     ros::Subscriber marker_position_sub;
+    ros::Publisher rviz_marker_pub;
     bool initialized = false;
     ros::NodeHandle nh;
 };

@@ -284,6 +284,7 @@ MarkerTracker::MarkerTracker(){
     spinner = new ros::AsyncSpinner(5);
     spinner->start();
     marker_position_sub = nh.subscribe("/raspicamera/marker_position", 1000, &MarkerTracker::pipe2function, this);
+    rviz_marker_pub=nh.advertise<visualization_msgs::Marker>("/visualization_marker", 1000);
 }
 
 MarkerTracker::~MarkerTracker() {

@@ -74,5 +74,5 @@ else ()
     add_dependencies(tracking_node communication_gencpp)
     TARGET_LINK_LIBRARIES(tracking_node ${SFML_LIBRARIES} ${glew_LIBRARIES} ${assimp_LIBRARIES} ${OPENGL_LIBRARIES}
             ${ImageMagick_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} ${SDFormat_LIBRARIES} ${BOOST_LIBRARIES} -lpthread
-            ${catkin_LIBRARIES} )
+            ${catkin_LIBRARIES} -lncurses )
 endif ()
