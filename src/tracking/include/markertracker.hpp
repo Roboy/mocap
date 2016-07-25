@@ -92,6 +92,8 @@ struct CameraMarkerModel:Functor<double>{
     NumericalDiff<CameraMarkerModel> *numDiff;
     Eigen::LevenbergMarquardt<Eigen::NumericalDiff<CameraMarkerModel>, double> *lm;
     double reprojectionError;
+    uint markerVisible = 0;
+    float fps = 0;
 };
 
 class MarkerTracker{
@@ -107,21 +109,20 @@ public:
     bool init();
     /**
      * This is the callback function for the marker positions,
-     * depending on the cameraID these a passed to the responsible Models
-     * @param msg MarkerPosition message, containing seq, timestamp, position, cameraID
+     * depending on the cameraID and the cameras state, these are passed to the responsible Models
+     * @param msg MarkerPosition message, containing seq, timestamp, position in image, cameraID
      */
     void pipe2function(const communication::MarkerPosition::ConstPtr& msg);
 
     Matrix4d ModelMatrix;
-    Vector3d pos3D_old, pos3D_new;
 
+    ros::NodeHandle nh;
+    ros::Subscriber marker_position_sub;
+    ros::Publisher rviz_marker_pub;
     std::map<int, CameraMarkerModel> camera;
     std::map<int, int> cameraState;
 private:
     ros::AsyncSpinner *spinner;
-    ros::Subscriber marker_position_sub;
-    ros::Publisher rviz_marker_pub;
     bool initialized = false;
-    ros::NodeHandle nh;
 };
 

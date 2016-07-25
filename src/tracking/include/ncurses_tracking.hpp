@@ -13,16 +13,21 @@ enum COLORS{
 //! standard query messages
 char welcomestring[] = "commandline tool for controlling raspberry pi motion capture system";
 char commandstring[] = "[0]toggle pose publishing, [1]show virtual marker, [9]exit";
+char posepublishingstring[] = "pose publishing ";
+char virtualmarkerstring[] = "virtual marker rendering ";
+char onstring[] = "ON";
+char offstring[] = "OFF";
+char fpsstring[] =    "fps:          ";
+char markerstring[] = "marker:       ";
 char invalidstring[] = "invalid!";
 char quitstring[] = " [hit q to quit]";
-char averageconnectionspeedstring[] = "average connection speed: ";
 char logfilestring[] = "see logfile measureConnectionTime.log for details";
 char filenamestring[] = "enter filename to save recorded trajectories: ";
 char byebyestring[] = "BYE BYE!";
 
 class NCurses_tracking{
 public:
-    NCurses_tracking(){
+    NCurses_tracking(sf::Window *win):window(win){
         model = new Model("/home/letrend/workspace/markertracker","markermodel.dae");
         Vector3f cameraPosition(0,0,0);
         Vector3f point(0,0,1);
@@ -39,18 +44,22 @@ public:
         //! get the size of the terminal window
         getmaxyx(stdscr,rows,cols);
 
+        // how many camera infos can we render in a row
+        uint camerasPerRow = cols/30;
+
         print(0,0,cols,"-");
         printMessage(1,0,welcomestring);
         print(2,0,cols,"-");
         print(6,0,cols,"-");
-//		querySensoryData();
         printMessage(3,0,commandstring);
+
+        window->setActive(virtualMarkerVisibleFlag);
+        window->setVisible(virtualMarkerVisibleFlag);
 	}
 	~NCurses_tracking(){
         delete model;
 		clearAll(0);
 		printMessage(rows/2,cols/2-strlen(byebyestring)/2,byebyestring);
-		refresh();
 		usleep(1000000);
 		endwin();
 	}
@@ -112,29 +121,74 @@ public:
 		timeout(-1);
 	}
 	void togglePosePublishing(){
-		timeout(-1);
-		echo();
-		print(4,0,cols," ");
-		print(5,0,cols," ");
-
-		print(4,0,cols," ");
-		print(5,0,cols," ");
-		noecho();
+        pubishPoseFlag = !pubishPoseFlag;
+        if(pubishPoseFlag){
+            markerTracker.rviz_marker_pub = markerTracker.nh.advertise<visualization_msgs::Marker>("/visualization_marker", 1000);
+        }else{
+            markerTracker.rviz_marker_pub.shutdown();
+        }
+        print(4,0,cols," ");
+        printMessage(4,0,posepublishingstring);
+        printMessage(4,strlen(posepublishingstring),pubishPoseFlag ? onstring:offstring, GREEN);
+        usleep(500000);
+        print(4,0,cols," ");
 	}
     void toggleVirtualMarker(){
-        timeout(-1);
-        echo();
+        virtualMarkerVisibleFlag = !virtualMarkerVisibleFlag;
+        if(virtualMarkerVisibleFlag) {
+            window->setActive(virtualMarkerVisibleFlag);
+            window->setVisible(virtualMarkerVisibleFlag);
+            // update viewmatrix from user input
+            model->updateViewMatrix(*window);
+            // render the object with the updated modelmatrix
+            pose = markerTracker.ModelMatrix.cast<float>();
+            model->render(pose, img);
+            window->display();
+        }
         print(4,0,cols," ");
-        print(5,0,cols," ");
-
+        printMessage(4,0,virtualmarkerstring);
+        printMessage(4,strlen(virtualmarkerstring),virtualMarkerVisibleFlag ? onstring:offstring, GREEN);
+        usleep(500000);
         print(4,0,cols," ");
-        print(5,0,cols," ");
-        noecho();
     }
+    void showCameraInfo(){
+        uint cam = 0, row = 6;
+        for(auto state = markerTracker.cameraState.begin(); state != markerTracker.cameraState.end(); ++state) {
+            printMessage(6, cam*30, markerTracker.camera[state->first].name);
+            switch(state->second){
+                case Uninitialized:
+                    printMessage(row+1, cam*30, (char*)"Unintialized", COLOR_WHITE);
+                    break;
+                case Initialized:
+                    printMessage(row+1, cam*30, (char*)"Intialized", COLOR_YELLOW);
+                    break;
+                case Tracking:
+                    printMessage(row+1, cam*30, (char*)"Tracking", COLOR_GREEN);
+                    break;
+                case Error:
+                    printMessage(row+1, cam*30, (char*)"Error", COLOR_RED);
+                    break;
+            }
+            printMessage(row+2, cam*30, markerTracker.camera[state->first].name);
+            sprintf(fpsstring,"fps %f", markerTracker.camera[state->first].fps);
+            printMessage(row+3, cam*30, fpsstring);
+            sprintf(markerstring, "marker %d", markerTracker.camera[state->first].markerVisible);
+            printMessage(row+4, cam*30, markerstring);
+            cam++;
+            if(row>camerasPerRow) {
+                row += 6;
+                cam = 0;
+            }
+        }
+    }
+private:
     Model *model;
     MarkerTracker markerTracker;
-private:
-	uint rows, cols;
+    sf::Window *window;
+	uint rows, cols, camerasPerRow;
+    bool virtualMarkerVisibleFlag = false, pubishPoseFlag = true;
 	float pos;
 	char inputstring[30];
+    Mat img;
+    Matrix4f pose;
 };

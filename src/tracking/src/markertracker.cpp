@@ -102,6 +102,7 @@ int CameraMarkerModel::initializeModel(const communication::MarkerPosition::Cons
     }else{
         return CameraState::Uninitialized;
     }
+    markerVisible = msg->markerVisible;
 }
 
 int CameraMarkerModel::track(const communication::MarkerPosition::ConstPtr& msg){
@@ -157,6 +158,8 @@ int CameraMarkerModel::track(const communication::MarkerPosition::ConstPtr& msg)
     }else{
         return CameraState::Error;
     }
+    markerVisible = msg->markerVisible;
+    fps = msg->fps;
 }
 
 void CameraMarkerModel::checkCorrespondence(){

@@ -45,17 +45,12 @@ int main(int argc, char *argv[]) {
     settings.stencilBits = 8;
     sf::Window window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT, 32), "Marker Tracker", sf::Style::Titlebar | sf::Style::Close, settings);
 
-    bool virtualMarkerVisible = false;
-    window.setActive(virtualMarkerVisible);
-    window.setVisible(virtualMarkerVisible);
-
     // Initialize GLEW
     glewExperimental = GL_TRUE;
     glewInit();
 
-    Matrix4f pose;
+    NCurses_tracking ncurse(&window);
 
-    NCurses_tracking ncurse;
     char cmd;
     noecho();
     do{
@@ -66,18 +61,10 @@ int main(int argc, char *argv[]) {
                 ncurse.togglePosePublishing();
                 break;
             case '1':
-                virtualMarkerVisible = !virtualMarkerVisible;
-                window.setActive(virtualMarkerVisible);
-                window.setVisible(virtualMarkerVisible);
-                pose = ncurse.markerTracker.ModelMatrix.cast<float>();
-                ncurse.model->updateViewMatrix(window);
-                // render the object with the updated modelmatrix
-                Mat img;
-                ncurse.model->render(pose,img);
-                window.display();
                 ncurse.toggleVirtualMarker();
                 break;
         }
+        ncurse.showCameraInfo();
     }while( cmd != '9');
 //
 //    char c;
