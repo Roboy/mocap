@@ -71,23 +71,10 @@ void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_len
 
     t2 = std::chrono::high_resolution_clock::now();
     time_span = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
-    markerPosition.fps = next_id/time_span.count();
-
-    // undistort
-    cv::remap(img_gray, img_rectified, map1, map2, cv::INTER_CUBIC);
-    cv::flip(img_rectified, img_rectified, 1);
-    cv::Mat img_gray;
+    markerPosition.fps = (double)next_id/time_span.count();
 
     cv::Mat filtered_img;
-    cv::threshold(img_rectified, filtered_img, threshold_value, 255, 3);
-
-    cv::Mat erodeElement = cv::getStructuringElement(2, cv::Size(3, 3), cv::Point(1, 1));
-    cv::Mat dilateElement = cv::getStructuringElement(2, cv::Size(5, 5), cv::Point(3, 3));
-
-    erode(filtered_img, filtered_img, erodeElement);
-    erode(filtered_img, filtered_img, erodeElement);
-    dilate(filtered_img, filtered_img, dilateElement);
-    dilate(filtered_img, filtered_img, dilateElement);
+    cv::threshold(img_gray, filtered_img, threshold_value, 255, 3);
 
     // find contours in result, which hopefully correspond to a found object
     vector <vector<cv::Point>> contours;
@@ -110,14 +97,16 @@ void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_len
     vector <cv::Point2f> centers(contours.size());
     vector<float> radius(contours.size());
     for (int idx = 0; idx < contours.size(); idx++) {
-        drawContours(img, contours, idx, cv::Scalar(255, 0, 0), 4, 8, hierarchy, 0,
-                     cv::Point());
+        //drawContours(img, contours, idx, cv::Scalar(255, 0, 0), 4, 8, hierarchy, 0,
+        //             cv::Point());
         minEnclosingCircle(contours[idx], centers[idx], radius[idx]);
         communication::Vector2 pos;
         pos.x = centers[idx].x;
         pos.y = centers[idx].y;
         markerPosition.marker_position.push_back(pos);
     }
+    //imshow("camera", img);
+    //waitKey(1);
     marker_position_pub->publish(markerPosition);
 }
 
