@@ -10,7 +10,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 SET(CMAKE_BUILD_TYPE Debug FORCE)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++11")
 
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} /usr/local/lib/cmake)
+SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake )
 
 execute_process(COMMAND grep -o BCM2709 /proc/cpuinfo OUTPUT_VARIABLE IAMRASPBERRYPI3)
 if (NOT IAMRASPBERRYPI3)
@@ -28,7 +28,10 @@ else ()
 
     # raspi camera
     find_package(picam REQUIRED)
-    include_directories(picam_INCLUDE_DIRECTORIES)
+    include_directories(
+	    ${picam_INCLUDE_DIRS}
+	    ${CMAKE_CURRENT_SOURCE_DIR}/picam
+	    )
 
     include_directories(
             ${catkin_INCLUDE_DIRS}
