@@ -40,6 +40,6 @@ private:
     static ros::Publisher *marker_position_pub;
     ros::Subscriber initialize_sub;
     ros::AsyncSpinner *spinner;
-    static Mat img, img_rectified;
-    static unsigned char *img_data, *img_rectified_data;
+    static Mat img, img_rectified, img_gray;
+    static unsigned char *img_data, *img_rectified_data, *img_gray_data;
 };

@@ -7,9 +7,11 @@ std::chrono::high_resolution_clock::time_point VisionNode::t2;
 std::chrono::duration<double> VisionNode::time_span;
 Mat VisionNode::img = Mat(HEIGHT, WIDTH, CV_8UC4, VisionNode::img_data);
 Mat VisionNode::img_rectified = Mat(HEIGHT, WIDTH, CV_8UC4, VisionNode::img_rectified_data);
+Mat VisionNode::img_gray = Mat(HEIGHT, WIDTH, CV_8UC1, VisionNode::img_gray_data);
 ros::Publisher* VisionNode::marker_position_pub = NULL;
 unsigned char* VisionNode::img_data = new unsigned char[WIDTH*HEIGHT*4];
 unsigned char* VisionNode::img_rectified_data = new unsigned char[WIDTH*HEIGHT*4];
+unsigned char* VisionNode::img_gray_data = new unsigned char[WIDTH*HEIGHT];
 Mat VisionNode::map1;
 Mat VisionNode::map2;
 
@@ -30,13 +32,6 @@ VisionNode::VisionNode() {
                             getOptimalNewCameraMatrix(cameraMatrix, distCoeffs, cv::Size(WIDTH, HEIGHT), 1,
                                                       cv::Size(WIDTH, HEIGHT), 0),
                             cv::Size(WIDTH, HEIGHT), CV_16SC2, map1, map2);
-
-    if (!ros::isInitialized()) {
-        int argc = 0;
-        char **argv = NULL;
-        ros::init(argc, argv, "VisionNode",
-                  ros::init_options::NoSigintHandler | ros::init_options::AnonymousName);
-    }
 
     marker_position_pub = new ros::Publisher;
     *marker_position_pub = nh.advertise<communication::MarkerPosition>("/raspicamera/marker_position", 1000);
@@ -66,6 +61,7 @@ VisionNode::VisionNode() {
 void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_length) {
     cv::Mat myuv(HEIGHT + HEIGHT / 2, WIDTH, CV_8UC1, (unsigned char *) buffer);
     cv::cvtColor(myuv, img, CV_YUV2RGBA_NV21);
+    cv::cvtColor(img, img_gray, CV_RGBA2GRAY);
 
     communication::MarkerPosition markerPosition;
     markerPosition.header.stamp = ros::Time::now();
@@ -75,23 +71,10 @@ void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_len
 
     t2 = std::chrono::high_resolution_clock::now();
     time_span = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
-    markerPosition.fps = next_id/time_span.count();
-
-    // undistort
-    cv::remap(img, img_rectified, map1, map2, cv::INTER_CUBIC);
-    cv::flip(img_rectified, img_rectified, 1);
-    cv::Mat img_gray;
+    markerPosition.fps = (double)next_id/time_span.count();
 
     cv::Mat filtered_img;
-    cv::threshold(img_rectified, filtered_img, threshold_value, 255, 3);
-
-    cv::Mat erodeElement = cv::getStructuringElement(2, cv::Size(3, 3), cv::Point(1, 1));
-    cv::Mat dilateElement = cv::getStructuringElement(2, cv::Size(5, 5), cv::Point(3, 3));
-
-    erode(filtered_img, filtered_img, erodeElement);
-    erode(filtered_img, filtered_img, erodeElement);
-    dilate(filtered_img, filtered_img, dilateElement);
-    dilate(filtered_img, filtered_img, dilateElement);
+    cv::threshold(img_gray, filtered_img, threshold_value, 255, 3);
 
     // find contours in result, which hopefully correspond to a found object
     vector <vector<cv::Point>> contours;
@@ -114,14 +97,16 @@ void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_len
     vector <cv::Point2f> centers(contours.size());
     vector<float> radius(contours.size());
     for (int idx = 0; idx < contours.size(); idx++) {
-        drawContours(img, contours, idx, cv::Scalar(255, 0, 0), 4, 8, hierarchy, 0,
-                     cv::Point());
+        //drawContours(img, contours, idx, cv::Scalar(255, 0, 0), 4, 8, hierarchy, 0,
+        //             cv::Point());
         minEnclosingCircle(contours[idx], centers[idx], radius[idx]);
         communication::Vector2 pos;
         pos.x = centers[idx].x;
         pos.y = centers[idx].y;
         markerPosition.marker_position.push_back(pos);
     }
+    //imshow("camera", img);
+    //waitKey(1);
     marker_position_pub->publish(markerPosition);
 }
 
@@ -131,4 +116,5 @@ VisionNode::~VisionNode() {
     delete marker_position_pub;
     delete[] img_data;
     delete[] img_rectified_data;
+    delete[] img_gray_data;
 }

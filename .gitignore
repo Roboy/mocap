@@ -10,3 +10,4 @@ build/
 devel/
 
 .catkin_workspace
+*.swp
