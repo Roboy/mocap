@@ -1,7 +1,6 @@
 #include "visionNode.hpp"
 
 int main(int argc, char *argv[]) {
-
     VisionNode visionNode;
 
     ros::Duration d(1.0);

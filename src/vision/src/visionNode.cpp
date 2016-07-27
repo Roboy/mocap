@@ -1,14 +1,16 @@
 #include "visionNode.hpp"
 
-VisionNode::VisionNode(){
+VisionNode::VisionNode() {
     cv::FileStorage fs("/home/letrend/workspace/mocap/src/intrinsics.xml", cv::FileStorage::READ);
-    if(!fs.isOpened()){
+    if (!fs.isOpened()) {
         ROS_ERROR("could not open intrinsics.xml");
-	return;
+        return;
     }
     fs["camera_matrix"] >> cameraMatrix;
     fs["distortion_coefficients"] >> distCoeffs;
     fs.release();
+
+    ID = 0;
 
     // calculate undistortion mapping
     initUndistortRectifyMap(cameraMatrix, distCoeffs, Mat(),
@@ -17,10 +19,10 @@ VisionNode::VisionNode(){
                             cv::Size(WIDTH, HEIGHT), CV_16SC2, map1, map2);
 
     if (!ros::isInitialized()) {
- 	   int argc = 0;
-	   char **argv = NULL;
-	   ros::init(argc, argv, "VisionNode",
-	   ros::init_options::NoSigintHandler | ros::init_options::AnonymousName);
+        int argc = 0;
+        char **argv = NULL;
+        ros::init(argc, argv, "VisionNode",
+                  ros::init_options::NoSigintHandler | ros::init_options::AnonymousName);
     }
 
     marker_position_pub = nh.advertise<communication::MarkerPosition>("/raspicamera/marker_position", 1000);
@@ -28,13 +30,11 @@ VisionNode::VisionNode(){
     img = cv::Mat(HEIGHT, WIDTH, CV_8UC4, dest);
 
     // Publish the marker
-    while (marker_position_pub.getNumSubscribers() < 1)
-    {
+    while (marker_position_pub.getNumSubscribers() < 1) {
         ros::Duration d(1.0);
-        if (!ros::ok())
-        {
-        	return;
-	}
+        if (!ros::ok()) {
+            return;
+        }
         ROS_WARN_ONCE("Please create a subscriber to the marker position");
         d.sleep();
     }
@@ -43,68 +43,77 @@ VisionNode::VisionNode(){
     spinner = new ros::AsyncSpinner(1);
     spinner->start();
 
-StartCamera(WIDTH,HEIGHT,90,CameraCallback);
+    img = cv::Mat(HEIGHT, WIDTH, CV_8UC4, img_data);
+    img_rectified = cv::Mat(HEIGHT, WIDTH, CV_8UC4, img_rectified_data);
+
+    t1 = std::chrono::high_resolution_clock::now();
+
+    StartCamera(WIDTH, HEIGHT, 90, CameraCallback);
 }
 
-void VisionNode::CameraCallback(CCamera* cam, const void* buffer, int buffer_length){
-	    cv::Mat myuv(HEIGHT + HEIGHT/2, WIDTH, CV_8UC1, (unsigned char*)buffer);
-	        cv::cvtColor(myuv, img, CV_YUV2RGBA_NV21);
+void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_length) {
+    cv::Mat myuv(HEIGHT + HEIGHT / 2, WIDTH, CV_8UC1, (unsigned char *) buffer);
+    cv::cvtColor(myuv, img, CV_YUV2RGBA_NV21);
 
-			    
-	communication::MarkerPosition markerPosition;
-		    markerPosition.header.stamp = ros::Time::now();
-	static uint next_id=0;
-    		    markerPosition.header.seq = next_id++;
+    communication::MarkerPosition markerPosition;
+    markerPosition.header.stamp = ros::Time::now();
+    static uint next_id = 0;
+    markerPosition.header.seq = next_id++;
+    markerPosition.cameraID = ID;
 
-			    // undistort
-			    //     cv::remap(img, img_rectified, map1, map2, cv::INTER_CUBIC);
-			    //         cv::flip(img_rectified, img_rectified, 1);
-			    //             cv::Mat img_gray;
-			    //
-			    //                 cv::Mat filtered_img;
-			    //                     cv::threshold(img_rectified, filtered_img, threshold_value, 255, 3);
-			    //
-			    //                         cv::Mat erodeElement = cv::getStructuringElement(2, cv::Size(3, 3), cv::Point(1, 1));
-			    //                             cv::Mat dilateElement = cv::getStructuringElement(2, cv::Size(5, 5), cv::Point(3, 3));
-			    //
-			    //                                 erode(filtered_img, filtered_img, erodeElement);
-			    //                                     erode(filtered_img, filtered_img, erodeElement);
-			    //                                         dilate(filtered_img, filtered_img, dilateElement);
-			    //                                             dilate(filtered_img, filtered_img, dilateElement);
-			    //
-			    //                                                 // find contours in result, which hopefully correspond to a found object
-			    //                                                     vector<vector<cv::Point> > contours;
-			    //                                                         vector<cv::Vec4i> hierarchy;
-			    //                                                             findContours(filtered_img, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE,
-			    //                                                                         cv::Point(0, 0));
-			    //
-			    //                                                                             // filter out tiny useless contours
-			    //                                                                                 double min_contour_area = 60;
-			    //                                                                                     for (auto it = contours.begin(); it != contours.end();) {
-			    //                                                                                             if (contourArea(*it) < min_contour_area) {
-			    //                                                                                                         it = contours.erase(it);
-			    //                                                                                                                 }
-			    //                                                                                                                         else {
-			    //                                                                                                                                     ++it;
-			    //                                                                                                                                             }
-			    //                                                                                                                                                 }
-			    //
-			    //                                                                                                                                                     // get centers and publish
-			    //                                                                                                                                                         vector<cv::Point2f> centers(contours.size());
-			    //                                                                                                                                                             vector<float> radius(contours.size());
-			    //                                                                                                                                                                 for (int idx = 0; idx < contours.size(); idx++) {
-			    //                                                                                                                                                                         drawContours(img, contours, idx, cv::Scalar(255, 0, 0), 4, 8, hierarchy, 0,
-			    //                                                                                                                                                                                 cv::Point());
-			    //                                                                                                                                                                                         minEnclosingCircle(contours[idx], centers[idx], radius[idx]);
-			    //                                                                                                                                                                                                 communication::Vector2 pos;
-			    //                                                                                                                                                                                                         pos.x = centers[idx].x;
-			    //                                                                                                                                                                                                                 pos.y = centers[idx].y;
-			    //                                                                                                                                                                                                                         markerPosition.marker_position.push_back(pos);
-			    //                                                                                                                                                                                                                             }
-			    //                                                                                                                                                                                                                                 marker_position_pub.publish(markerPosition);
-			    //                                                                                                                                                                                                                                 }
+    t2 = std::chrono::high_resolution_clock::now();
+    time_span = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
+    markerPosition.fps = next_id/time_span.count();
 
-VisionNode::~VisionNode(){
+    // undistort
+    cv::remap(img, img_rectified, map1, map2, cv::INTER_CUBIC);
+    cv::flip(img_rectified, img_rectified, 1);
+    cv::Mat img_gray;
+
+    cv::Mat filtered_img;
+    cv::threshold(img_rectified, filtered_img, threshold_value, 255, 3);
+
+    cv::Mat erodeElement = cv::getStructuringElement(2, cv::Size(3, 3), cv::Point(1, 1));
+    cv::Mat dilateElement = cv::getStructuringElement(2, cv::Size(5, 5), cv::Point(3, 3));
+
+    erode(filtered_img, filtered_img, erodeElement);
+    erode(filtered_img, filtered_img, erodeElement);
+    dilate(filtered_img, filtered_img, dilateElement);
+    dilate(filtered_img, filtered_img, dilateElement);
+
+    // find contours in result, which hopefully correspond to a found object
+    vector <vector<cv::Point>> contours;
+    vector <cv::Vec4i> hierarchy;
+    findContours(filtered_img, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE,
+                 cv::Point(0, 0));
+
+    // filter out tiny useless contours
+    double min_contour_area = 60;
+    for (auto it = contours.begin(); it != contours.end();) {
+        if (contourArea(*it) < min_contour_area) {
+            it = contours.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
+
+    // get centers and publish
+    vector <cv::Point2f> centers(contours.size());
+    vector<float> radius(contours.size());
+    for (int idx = 0; idx < contours.size(); idx++) {
+        drawContours(img, contours, idx, cv::Scalar(255, 0, 0), 4, 8, hierarchy, 0,
+                     cv::Point());
+        minEnclosingCircle(contours[idx], centers[idx], radius[idx]);
+        communication::Vector2 pos;
+        pos.x = centers[idx].x;
+        pos.y = centers[idx].y;
+        markerPosition.marker_position.push_back(pos);
+    }
+    marker_position_pub.publish(markerPosition);
+}
+
+VisionNode::~VisionNode() {
     spinner->stop();
     delete spinner;
 }

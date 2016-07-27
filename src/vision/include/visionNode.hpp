@@ -17,7 +17,12 @@
 using namespace std;
 using namespace cv;
 
-Mat img;
+Mat img, img_rectified;
+unsigned char img_data[WIDTH*HEIGHT*4], img_rectified_data[WIDTH*HEIGHT*4];
+
+static std::chrono::high_resolution_clock::time_point t1;
+static std::chrono::high_resolution_clock::time_point t2;
+static std::chrono::duration<double> time_span;
 
 class VisionNode{
 public:
@@ -27,7 +32,7 @@ public:
 private:
     static void CameraCallback(CCamera* cam, const void* buffer, int buffer_length);
     int threshold_value = 240;
-    unsigned char dest[WIDTH*HEIGHT*4];
+    uint ID;
     Mat cameraMatrix, distCoeffs;
     Mat img_rectified, map1, map2;
     Mat myuv;
