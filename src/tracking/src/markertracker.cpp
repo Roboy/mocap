@@ -16,11 +16,11 @@ CameraMarkerModel::CameraMarkerModel(void): Functor<double>(6,2*MARKER){
                                 cv::getOptimalNewCameraMatrix(cameraMatrix, distCoeffs, cv::Size(640,480), 1, cv::Size(640,480), 0),
                                 cv::Size(640,480), CV_16SC2, map1, map2);
 
-    std::cout<< "cameraMatrix: \n" << cameraMatrix << "\ndistCoeffs: \n" << distCoeffs << std::endl;
+    //std::cout<< "cameraMatrix: \n" << cameraMatrix << "\ndistCoeffs: \n" << distCoeffs << std::endl;
 
     // camera intrinsic matrix
     K = Matrix3d((double*)cameraMatrix.data).transpose();
-    cout << "camera instrinsics:\n" << K << endl;
+    //cout << "camera instrinsics:\n" << K << endl;
 };
 
 int CameraMarkerModel::initializeModel(const communication::MarkerPosition::ConstPtr& msg){
@@ -102,7 +102,6 @@ int CameraMarkerModel::initializeModel(const communication::MarkerPosition::Cons
     }else{
         return CameraState::Uninitialized;
     }
-    markerVisible = msg->markerVisible;
 }
 
 int CameraMarkerModel::track(const communication::MarkerPosition::ConstPtr& msg){
@@ -158,8 +157,6 @@ int CameraMarkerModel::track(const communication::MarkerPosition::ConstPtr& msg)
     }else{
         return CameraState::Error;
     }
-    markerVisible = msg->markerVisible;
-    fps = msg->fps;
 }
 
 void CameraMarkerModel::checkCorrespondence(){
@@ -309,6 +306,8 @@ void MarkerTracker::pipe2function(const communication::MarkerPosition::ConstPtr&
     auto it = camera.find(msg->cameraID);
     if(it != camera.end()) // camera already registered
     {
+        camera[msg->cameraID].markerVisible = msg->markerVisible;
+        camera[msg->cameraID].fps = msg->fps;
         switch(cameraState[msg->cameraID]){
             case Uninitialized:{
                 cameraState[msg->cameraID] = it->second.initializeModel(msg);
