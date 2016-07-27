@@ -61,6 +61,10 @@ else ()
     # boost
     find_package(Boost COMPONENTS filesystem REQUIRED)
 
+    # ncurse
+    pkg_check_modules(ncurses REQUIRED ncurses)
+    include_directories(${ncurses_INCLUDE_DIRS})
+
     include_directories(
             ${catkin_INCLUDE_DIRS}
             ${CMAKE_CURRENT_SOURCE_DIR}/omgl/include
@@ -74,5 +78,5 @@ else ()
     add_dependencies(tracking_node communication_gencpp)
     TARGET_LINK_LIBRARIES(tracking_node ${SFML_LIBRARIES} ${glew_LIBRARIES} ${assimp_LIBRARIES} ${OPENGL_LIBRARIES}
             ${ImageMagick_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} ${SDFormat_LIBRARIES} ${BOOST_LIBRARIES} -lpthread
-            ${catkin_LIBRARIES} -lncurses )
+            ${catkin_LIBRARIES} ${ncurses_LIBRARIES} )
 endif ()
