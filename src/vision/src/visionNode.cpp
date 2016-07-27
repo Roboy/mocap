@@ -1,5 +1,18 @@
 #include "visionNode.hpp"
 
+uint VisionNode::ID = 0;
+int VisionNode::threshold_value = 240;
+std::chrono::high_resolution_clock::time_point VisionNode::t1;
+std::chrono::high_resolution_clock::time_point VisionNode::t2;
+std::chrono::duration<double> VisionNode::time_span;
+Mat VisionNode::img = Mat(HEIGHT, WIDTH, CV_8UC4, VisionNode::img_data);
+Mat VisionNode::img_rectified = Mat(HEIGHT, WIDTH, CV_8UC4, VisionNode::img_rectified_data);
+ros::Publisher* VisionNode::marker_position_pub = NULL;
+unsigned char* VisionNode::img_data = new unsigned char[WIDTH*HEIGHT*4];
+unsigned char* VisionNode::img_rectified_data = new unsigned char[WIDTH*HEIGHT*4];
+Mat VisionNode::map1;
+Mat VisionNode::map2;
+
 VisionNode::VisionNode() {
     cv::FileStorage fs("/home/letrend/workspace/mocap/src/intrinsics.xml", cv::FileStorage::READ);
     if (!fs.isOpened()) {
@@ -25,12 +38,11 @@ VisionNode::VisionNode() {
                   ros::init_options::NoSigintHandler | ros::init_options::AnonymousName);
     }
 
-    marker_position_pub = nh.advertise<communication::MarkerPosition>("/raspicamera/marker_position", 1000);
-
-    img = cv::Mat(HEIGHT, WIDTH, CV_8UC4, dest);
+    marker_position_pub = new ros::Publisher;
+    *marker_position_pub = nh.advertise<communication::MarkerPosition>("/raspicamera/marker_position", 1000);
 
     // Publish the marker
-    while (marker_position_pub.getNumSubscribers() < 1) {
+    while (marker_position_pub->getNumSubscribers() < 1) {
         ros::Duration d(1.0);
         if (!ros::ok()) {
             return;
@@ -110,10 +122,13 @@ void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_len
         pos.y = centers[idx].y;
         markerPosition.marker_position.push_back(pos);
     }
-    marker_position_pub.publish(markerPosition);
+    marker_position_pub->publish(markerPosition);
 }
 
 VisionNode::~VisionNode() {
     spinner->stop();
     delete spinner;
+    delete marker_position_pub;
+    delete[] img_data;
+    delete[] img_rectified_data;
 }

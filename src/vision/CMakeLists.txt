@@ -40,7 +40,7 @@ else ()
     #==============================================================================
     # Application
     #==============================================================================
-    ADD_EXECUTABLE(vision_node src/visionNode.cpp src/main.cpp)
+    ADD_EXECUTABLE(vision_node src/visionNode.cpp src/main.cpp picam/camera.cpp picam/cameracontrol.cpp)
     add_dependencies(vision_node communication_gencpp)
     TARGET_LINK_LIBRARIES(vision_node ${OpenCV_LIBS} ${catkin_LIBRARIES} ${picam_LIBRARIES} -lpthread)
 endif ()
