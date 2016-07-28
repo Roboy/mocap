@@ -5,22 +5,22 @@ CameraMarkerModel::CameraMarkerModel(void): Functor<double>(6,2*MARKER){
     markerIDs.resize(MARKER);
     Trafo2FirstCamera = Matrix4d::Identity();
 
-    cv::Mat cameraMatrix, distCoeffs;
-    cv::FileStorage fs("/home/letrend/workspace/markertracker/intrinsics.xml",cv::FileStorage::READ);
-    fs["camera_matrix"] >> cameraMatrix;
-    fs["distortion_coefficients"] >> distCoeffs;
-    fs.release();
-
-    // calculate undistortion mapping
-    cv::initUndistortRectifyMap(cameraMatrix, distCoeffs, cv::Mat(),
-                                cv::getOptimalNewCameraMatrix(cameraMatrix, distCoeffs, cv::Size(640,480), 1, cv::Size(640,480), 0),
-                                cv::Size(640,480), CV_16SC2, map1, map2);
-
-    //std::cout<< "cameraMatrix: \n" << cameraMatrix << "\ndistCoeffs: \n" << distCoeffs << std::endl;
-
-    // camera intrinsic matrix
-    K = Matrix3d((double*)cameraMatrix.data).transpose();
-    //cout << "camera instrinsics:\n" << K << endl;
+//    cv::Mat cameraMatrix, distCoeffs;
+//    cv::FileStorage fs("/home/letrend/workspace/mocap/src/intrinsics.xml",cv::FileStorage::READ);
+//    fs["camera_matrix"] >> cameraMatrix;
+//    fs["distortion_coefficients"] >> distCoeffs;
+//    fs.release();
+//
+//    // calculate undistortion mapping
+//    cv::initUndistortRectifyMap(cameraMatrix, distCoeffs, cv::Mat(),
+//                                cv::getOptimalNewCameraMatrix(cameraMatrix, distCoeffs, cv::Size(640,480), 1, cv::Size(640,480), 0),
+//                                cv::Size(640,480), CV_16SC2, map1, map2);
+//
+//    //std::cout<< "cameraMatrix: \n" << cameraMatrix << "\ndistCoeffs: \n" << distCoeffs << std::endl;
+//
+//    // camera intrinsic matrix
+//    K = Matrix3d((double*)cameraMatrix.data).transpose();
+//    //cout << "camera instrinsics:\n" << K << endl;
 };
 
 int CameraMarkerModel::initializeModel(const communication::MarkerPosition::ConstPtr& msg){
@@ -72,28 +72,28 @@ int CameraMarkerModel::initializeModel(const communication::MarkerPosition::Cons
 //    cout << "iterations: " << lm->iter << endl;
 //    cout << "x that minimizes the function: \n" << pose << endl;
 
-        Matrix3x4d RT;
-        getRTmatrix(pose, RT);
-
-        Matrix3xMARKERd projectedPosition2D = K * RT * pos3D;
-        origin2D = K * RT * origin3D;
-        origin2D(0) /= origin2D(2);
-        origin2D(1) /= origin2D(2);
-        char str[1];
-        for (uint col = 0; col < MARKER; col++) {
-            projectedPosition2D(0, col) /= projectedPosition2D(2, col);
-            projectedPosition2D(1, col) /= projectedPosition2D(2, col);
-
-            cv::Point2f center(projectedPosition2D(0, col), projectedPosition2D(1, col));
-            circle(img, center, 5, cv::Scalar(255, 255, 0), 4);
-            line(img, cv::Point2f(origin2D(0), origin2D(1)), center, cv::Scalar::all(255), 4);
-            sprintf(str, "%d", markerIDs[col]);
-            putText(img, str, center, cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 1, cv::Scalar::all(255));
-        }
-//    cout << "projectedPosition2D: \n" << projectedPosition2D << endl;
-
-        cv::imshow(name, img);
-        cv::waitKey(1);
+//        Matrix3x4d RT;
+//        getRTmatrix(pose, RT);
+//
+//        Matrix3xMARKERd projectedPosition2D = K * RT * pos3D;
+//        origin2D = K * RT * origin3D;
+//        origin2D(0) /= origin2D(2);
+//        origin2D(1) /= origin2D(2);
+//        char str[1];
+//        for (uint col = 0; col < MARKER; col++) {
+//            projectedPosition2D(0, col) /= projectedPosition2D(2, col);
+//            projectedPosition2D(1, col) /= projectedPosition2D(2, col);
+//
+//            cv::Point2f center(projectedPosition2D(0, col), projectedPosition2D(1, col));
+//            circle(img, center, 5, cv::Scalar(255, 255, 0), 4);
+//            line(img, cv::Point2f(origin2D(0), origin2D(1)), center, cv::Scalar::all(255), 4);
+//            sprintf(str, "%d", markerIDs[col]);
+//            putText(img, str, center, cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 1, cv::Scalar::all(255));
+//        }
+////    cout << "projectedPosition2D: \n" << projectedPosition2D << endl;
+//
+//        cv::imshow(name, img);
+//        cv::waitKey(1);
 
         delete numDiff;
         delete lm;
@@ -283,7 +283,7 @@ int CameraMarkerModel::operator()(const VectorXd &x, VectorXd &fvec) const
 MarkerTracker::MarkerTracker(){
     spinner = new ros::AsyncSpinner(5);
     spinner->start();
-    marker_position_sub = nh.subscribe("/raspicamera/marker_position", 1000, &MarkerTracker::pipe2function, this);
+    marker_position_sub = nh.subscribe("/raspicamera/marker_position", 1, &MarkerTracker::pipe2function, this);
     rviz_marker_pub=nh.advertise<visualization_msgs::Marker>("/visualization_marker", 1000);
     camera_control_pub=nh.advertise<communication::CameraControl>("/camera_control", 1000);
     video_sub=nh.subscribe("/raspicamera/video", 1, &MarkerTracker::videoCB, this);
@@ -368,17 +368,14 @@ bool MarkerTracker::sendCameraControl(uint ID, uint control, bool value){
 }
 
 void MarkerTracker::videoCB(const sensor_msgs::ImageConstPtr& msg){
-    cv_bridge::CvImagePtr cv_ptr;
-    try
-    {
-        cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-    }
-    catch (cv_bridge::Exception& e)
-    {
+    cv_bridge::CvImageConstPtr cv_ptr;
+    try {
+        cv_ptr = cv_bridge::toCvShare(msg, "mono8");
+    } catch (cv_bridge::Exception& e) {
         ROS_ERROR("cv_bridge exception: %s", e.what());
-        return;
     }
     // Update GUI Window
+    ROS_INFO("%d %d", cv_ptr->image.cols, cv_ptr->image.rows);
     cv::imshow("video stream", cv_ptr->image);
     cv::waitKey(1);
 }

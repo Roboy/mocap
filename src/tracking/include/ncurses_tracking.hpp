@@ -155,7 +155,7 @@ public:
     void streamVideo(){
         streamVideoFlag = !streamVideoFlag;
         if(streamVideoFlag) {
-
+            markerTracker.sendCameraControl(0,0,streamVideoFlag);
         }
         print(4,0,cols," ");
         printMessage(4,0,streamvideostring);
