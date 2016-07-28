@@ -3,6 +3,9 @@
 // ros
 #include <ros/ros.h>
 #include <communication/MarkerPosition.h>
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
 
 // opencv
 #include "opencv2/opencv.hpp"
@@ -37,9 +40,10 @@ private:
     static Mat map1, map2;
     Mat myuv;
     ros::NodeHandle nh;
-    static ros::Publisher *marker_position_pub;
+    static ros::Publisher *marker_position_pub, *video_pub;
     ros::Subscriber initialize_sub;
     ros::AsyncSpinner *spinner;
     static Mat img, img_rectified, img_gray;
     static unsigned char *img_data, *img_rectified_data, *img_gray_data;
+    static bool publish_video_flag;
 };

@@ -14,6 +14,7 @@ unsigned char* VisionNode::img_rectified_data = new unsigned char[WIDTH*HEIGHT*4
 unsigned char* VisionNode::img_gray_data = new unsigned char[WIDTH*HEIGHT];
 Mat VisionNode::map1;
 Mat VisionNode::map2;
+bool VisionNode::publish_video_flag = false;
 
 VisionNode::VisionNode() {
     cv::FileStorage fs("/home/letrend/workspace/mocap/src/intrinsics.xml", cv::FileStorage::READ);
@@ -35,6 +36,9 @@ VisionNode::VisionNode() {
 
     marker_position_pub = new ros::Publisher;
     *marker_position_pub = nh.advertise<communication::MarkerPosition>("/raspicamera/marker_position", 1000);
+
+    video_pub = new ros::Publisher;
+    video_pub = nh.advertise("/raspicamera/video", 1);
 
     // Publish the marker
     while (marker_position_pub->getNumSubscribers() < 1) {
@@ -58,10 +62,25 @@ VisionNode::VisionNode() {
     StartCamera(WIDTH, HEIGHT, 90, CameraCallback);
 }
 
+VisionNode::~VisionNode() {
+    spinner->stop();
+    delete spinner;
+    delete marker_position_pub;
+    delete video_pub;
+    delete[] img_data;
+    delete[] img_rectified_data;
+    delete[] img_gray_data;
+}
+
 void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_length) {
     cv::Mat myuv(HEIGHT + HEIGHT / 2, WIDTH, CV_8UC1, (unsigned char *) buffer);
     cv::cvtColor(myuv, img, CV_YUV2RGBA_NV21);
     cv::cvtColor(img, img_gray, CV_RGBA2GRAY);
+
+    if(publish_video){
+        cv_bridge::CvImagePtr cv_ptr;
+
+    }
 
     communication::MarkerPosition markerPosition;
     markerPosition.header.stamp = ros::Time::now();
@@ -108,13 +127,4 @@ void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_len
     //imshow("camera", img);
     //waitKey(1);
     marker_position_pub->publish(markerPosition);
-}
-
-VisionNode::~VisionNode() {
-    spinner->stop();
-    delete spinner;
-    delete marker_position_pub;
-    delete[] img_data;
-    delete[] img_rectified_data;
-    delete[] img_gray_data;
 }

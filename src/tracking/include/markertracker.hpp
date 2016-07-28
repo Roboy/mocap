@@ -24,6 +24,9 @@
 #include <communication/Vector2.h>
 #include <communication/MarkerPosition.h>
 #include <visualization_msgs/Marker.h>
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
 
 #define MARKER 4
 using namespace std;

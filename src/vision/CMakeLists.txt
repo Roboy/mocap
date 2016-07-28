@@ -20,7 +20,7 @@ else ()
     # Dependencies
     #==============================================================================
     # ros
-    find_package(catkin REQUIRED COMPONENTS roscpp std_msgs)
+    find_package(catkin REQUIRED COMPONENTS roscpp std_msgs sensor_msgs cv_bridge image_transport)
     catkin_package(CATKIN_DEPENDS message_runtime)
 
     # OpenCV
