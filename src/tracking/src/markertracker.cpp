@@ -370,12 +370,13 @@ bool MarkerTracker::sendCameraControl(uint ID, uint control, bool value){
 void MarkerTracker::videoCB(const sensor_msgs::ImageConstPtr& msg){
     cv_bridge::CvImageConstPtr cv_ptr;
     try {
-        cv_ptr = cv_bridge::toCvShare(msg, "mono8");
+        cv_ptr = cv_bridge::toCvCopy(msg, "mono8");
     } catch (cv_bridge::Exception& e) {
         ROS_ERROR("cv_bridge exception: %s", e.what());
     }
     // Update GUI Window
-    ROS_INFO("%d %d", cv_ptr->image.cols, cv_ptr->image.rows);
-    cv::imshow("video stream", cv_ptr->image);
+    cv::Mat img(480,640,CV_8UC1);
+    cv_ptr->image.copyTo(img);
+    cv::imshow("video stream", img);
     cv::waitKey(1);
 }

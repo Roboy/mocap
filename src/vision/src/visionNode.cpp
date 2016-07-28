@@ -138,9 +138,10 @@ void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_len
     if(publish_video_flag){
         cv_bridge::CvImage cvImage;
         img_gray.copyTo(cvImage.image);
-        cvImage.encoding = "8UC1";
         sensor_msgs::Image msg;
         cvImage.toImageMsg(msg);
+        msg.encoding = "mono8";
+        msg.header = markerPosition.header;
         video_pub->publish(msg);
     }
 }
