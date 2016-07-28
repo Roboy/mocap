@@ -9,6 +9,7 @@ Mat VisionNode::img = Mat(HEIGHT, WIDTH, CV_8UC4, VisionNode::img_data);
 Mat VisionNode::img_rectified = Mat(HEIGHT, WIDTH, CV_8UC4, VisionNode::img_rectified_data);
 Mat VisionNode::img_gray = Mat(HEIGHT, WIDTH, CV_8UC1, VisionNode::img_gray_data);
 ros::Publisher* VisionNode::marker_position_pub = NULL;
+ros::Publisher* VisionNode::video_pub = NULL;
 unsigned char* VisionNode::img_data = new unsigned char[WIDTH*HEIGHT*4];
 unsigned char* VisionNode::img_rectified_data = new unsigned char[WIDTH*HEIGHT*4];
 unsigned char* VisionNode::img_gray_data = new unsigned char[WIDTH*HEIGHT];
@@ -38,7 +39,7 @@ VisionNode::VisionNode() {
     *marker_position_pub = nh.advertise<communication::MarkerPosition>("/raspicamera/marker_position", 1000);
 
     video_pub = new ros::Publisher;
-    video_pub = nh.advertise("/raspicamera/video", 1);
+    *video_pub = nh.advertise<sensor_msgs::Image>("/raspicamera/video", 1);
 
     camera_control_sub = nh.subscribe("/camera_control", 1000, &VisionNode::camera_control, this);
 
@@ -138,9 +139,11 @@ void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_len
     if(publish_video_flag){
         cv_bridge::CvImage cvImage;
         img_gray.copyTo(cvImage.image);
-        cvImage.encoding = "8UC1";
+        cvImage.encoding = "mono8";
         sensor_msgs::Image msg;
         cvImage.toImageMsg(msg);
+	msg.encoding = "mono8";
+	msg.header = markerPosition.header; 
         video_pub->publish(msg);
     }
 }
