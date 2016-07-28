@@ -51,10 +51,10 @@ catkin_make
 ```
 ## run
 ###On the host 
-add to ~/.bashrc your IP address (you can check you IP with ifconfig), eg:
+add to ~/.bashrc your IP address (you can check your IP with ifconfig), eg:
 ```
 #!bash
-export ROS_MASTER_URI=http://192.168.2.106:113311
+export ROS_MASTER_URI=http://192.168.2.106:11311
 ```
 Then start the tracking node:
 ```
@@ -69,6 +69,6 @@ enter root shell (for access to camera), export same IP as your host and start t
 #!bash
 cd path/to/mocap/devel/lib/vision_node
 sudo -s
-export ROS_MASTER_URI=http://192.168.2.106:113311
+export ROS_MASTER_URI=http://192.168.2.106:11311
 ./vision_node
 ```
