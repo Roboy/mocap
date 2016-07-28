@@ -12,9 +12,10 @@ enum COLORS{
 
 //! standard query messages
 char welcomestring[] = "commandline tool for controlling raspberry pi motion capture system";
-char commandstring[] = "[0]toggle pose publishing, [1]show virtual marker, [9]exit";
+char commandstring[] = "[0]toggle pose publishing, [1]show virtual marker, [2]stream video, [9]exit";
 char posepublishingstring[] = "pose publishing ";
 char virtualmarkerstring[] = "virtual marker rendering ";
+char streamvideostring[] = "stream video ";
 char onstring[] = "ON";
 char offstring[] = "OFF";
 char fpsstring[] =    "fps:          ";
@@ -151,6 +152,17 @@ public:
         usleep(500000);
         print(4,0,cols," ");
     }
+    void streamVideo(){
+        streamVideoFlag = !streamVideoFlag;
+        if(streamVideoFlag) {
+
+        }
+        print(4,0,cols," ");
+        printMessage(4,0,streamvideostring);
+        printMessage(4,strlen(streamvideostring),streamVideoFlag ? onstring:offstring, GREEN);
+        usleep(500000);
+        print(4,0,cols," ");
+    }
     void showCameraInfo(){
         uint cam = 0, row = 6;
         for(auto state = markerTracker.cameraState.begin(); state != markerTracker.cameraState.end(); ++state) {
@@ -186,7 +198,7 @@ private:
     MarkerTracker markerTracker;
     sf::Window *window;
 	uint rows, cols, camerasPerRow;
-    bool virtualMarkerVisibleFlag = false, pubishPoseFlag = true;
+    bool virtualMarkerVisibleFlag = false, pubishPoseFlag = true, streamVideoFlag = false;
 	float pos;
 	char inputstring[30];
     Mat img;

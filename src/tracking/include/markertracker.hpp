@@ -23,6 +23,7 @@
 #include <ros/ros.h>
 #include <communication/Vector2.h>
 #include <communication/MarkerPosition.h>
+#include <communication/CameraControl.h>
 #include <visualization_msgs/Marker.h>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
@@ -117,13 +118,20 @@ public:
      */
     void pipe2function(const communication::MarkerPosition::ConstPtr& msg);
 
+    bool sendCameraControl(uint ID, uint control, bool value);
+
+    void videoCB(const sensor_msgs::ImageConstPtr& msg);
+
     Matrix4d ModelMatrix;
 
     ros::NodeHandle nh;
-    ros::Subscriber marker_position_sub;
-    ros::Publisher rviz_marker_pub;
+    ros::Subscriber marker_position_sub, video_sub;
+    ros::Publisher rviz_marker_pub, camera_control_pub;
     std::map<int, CameraMarkerModel> camera;
     std::map<int, int> cameraState;
+    enum{
+        toggleVideoStream = 0
+    }cameraControls;
 private:
     ros::AsyncSpinner *spinner;
     bool initialized = false;

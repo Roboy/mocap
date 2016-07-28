@@ -40,6 +40,8 @@ VisionNode::VisionNode() {
     video_pub = new ros::Publisher;
     video_pub = nh.advertise("/raspicamera/video", 1);
 
+    camera_control_sub = nh.subscribe("/camera_control", 1000, &VisionNode::camera_control, this);
+
     // Publish the marker
     while (marker_position_pub->getNumSubscribers() < 1) {
         ros::Duration d(1.0);
@@ -72,15 +74,20 @@ VisionNode::~VisionNode() {
     delete[] img_gray_data;
 }
 
+void VisionNode::camera_control(const communication::CameraControl::ConstPtr& msg){
+    if(msg->cameraID == ID){ // only react to control for this camera
+        switch(msg->control) {
+            case toggleVideoStream:
+                publish_video_flag = msg->value1;
+                break;
+        }
+    }
+}
+
 void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_length) {
     cv::Mat myuv(HEIGHT + HEIGHT / 2, WIDTH, CV_8UC1, (unsigned char *) buffer);
     cv::cvtColor(myuv, img, CV_YUV2RGBA_NV21);
     cv::cvtColor(img, img_gray, CV_RGBA2GRAY);
-
-    if(publish_video){
-        cv_bridge::CvImagePtr cv_ptr;
-
-    }
 
     communication::MarkerPosition markerPosition;
     markerPosition.header.stamp = ros::Time::now();
@@ -127,4 +134,13 @@ void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_len
     //imshow("camera", img);
     //waitKey(1);
     marker_position_pub->publish(markerPosition);
+
+    if(publish_video_flag){
+        cv_bridge::CvImage cvImage;
+        img_gray.copyTo(cvImage.image);
+        cvImage.encoding = "8UC1";
+        sensor_msgs::Image msg;
+        cvImage.toImageMsg(msg);
+        video_pub->publish(msg);
+    }
 }

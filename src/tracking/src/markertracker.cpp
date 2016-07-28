@@ -285,6 +285,8 @@ MarkerTracker::MarkerTracker(){
     spinner->start();
     marker_position_sub = nh.subscribe("/raspicamera/marker_position", 1000, &MarkerTracker::pipe2function, this);
     rviz_marker_pub=nh.advertise<visualization_msgs::Marker>("/visualization_marker", 1000);
+    camera_control_pub=nh.advertise<communication::CameraControl>("/camera_control", 1000);
+    video_sub=nh.subscribe("/raspicamera/video", 1, &MarkerTracker::videoCB, this);
 }
 
 MarkerTracker::~MarkerTracker() {
@@ -343,4 +345,40 @@ void MarkerTracker::pipe2function(const communication::MarkerPosition::ConstPtr&
         sprintf(camera[msg->cameraID].name, "camera %d", msg->cameraID);
         cameraState[msg->cameraID] = Uninitialized;
     }
+}
+
+bool MarkerTracker::sendCameraControl(uint ID, uint control, bool value){
+    // check if camera exists
+    auto it = camera.find(ID);
+    if(it != camera.end())
+    {
+        communication::CameraControl msg;
+        msg.cameraID = ID;
+        msg.control = control;
+        switch(control) {
+            case toggleVideoStream:
+                msg.value1 = value;
+                break;
+            default:
+                return false;
+        }
+        camera_control_pub.publish(msg);
+    }
+    return false;
+}
+
+void MarkerTracker::videoCB(const sensor_msgs::ImageConstPtr& msg){
+    cv_bridge::CvImagePtr cv_ptr;
+    try
+    {
+        cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    }
+    catch (cv_bridge::Exception& e)
+    {
+        ROS_ERROR("cv_bridge exception: %s", e.what());
+        return;
+    }
+    // Update GUI Window
+    cv::imshow("video stream", cv_ptr->image);
+    cv::waitKey(1);
 }

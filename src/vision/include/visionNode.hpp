@@ -30,6 +30,7 @@ public:
     ~VisionNode();
 
 private:
+    void camera_control(const communication::CameraControl::ConstPtr& msg);
     static void CameraCallback(CCamera* cam, const void* buffer, int buffer_length);
     static int threshold_value;
     static std::chrono::high_resolution_clock::time_point t1;
@@ -41,9 +42,12 @@ private:
     Mat myuv;
     ros::NodeHandle nh;
     static ros::Publisher *marker_position_pub, *video_pub;
-    ros::Subscriber initialize_sub;
+    ros::Subscriber camera_control_sub;
     ros::AsyncSpinner *spinner;
     static Mat img, img_rectified, img_gray;
     static unsigned char *img_data, *img_rectified_data, *img_gray_data;
     static bool publish_video_flag;
+    enum{
+        toggleVideoStream = 0
+    }cameraControls;
 };

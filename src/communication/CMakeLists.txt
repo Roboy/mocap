@@ -11,6 +11,7 @@ add_message_files(
         FILES
         MarkerPosition.msg
         Vector2.msg
+        CameraControl.msg
 )
 
 generate_messages(
