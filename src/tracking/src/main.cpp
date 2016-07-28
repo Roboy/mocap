@@ -63,6 +63,9 @@ int main(int argc, char *argv[]) {
             case '1':
                 ncurse.toggleVirtualMarker();
                 break;
+            case '2':
+                ncurse.streamVideo();
+                break;
         }
         ncurse.showCameraInfo();
     }while( cmd != '9');
