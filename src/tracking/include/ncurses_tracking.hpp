@@ -154,9 +154,7 @@ public:
     }
     void streamVideo(){
         streamVideoFlag = !streamVideoFlag;
-        if(streamVideoFlag) {
-            markerTracker.sendCameraControl(0,0,streamVideoFlag);
-        }
+        markerTracker.sendCameraControl(0,0,streamVideoFlag);
         print(4,0,cols," ");
         printMessage(4,0,streamvideostring);
         printMessage(4,strlen(streamvideostring),streamVideoFlag ? onstring:offstring, GREEN);
@@ -190,6 +188,12 @@ public:
             if(row>camerasPerRow) {
                 row += 6;
                 cam = 0;
+            }
+        }
+        if(streamVideoFlag){
+            if(!markerTracker.lockWhileWriting) {
+                cv::imshow("video stream", markerTracker.cv_ptr->image);
+                cv::waitKey(1);
             }
         }
     }
