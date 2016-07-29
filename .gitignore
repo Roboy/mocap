@@ -11,3 +11,4 @@ devel/
 
 .catkin_workspace
 *.swp
+camera_image_*

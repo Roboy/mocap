@@ -133,7 +133,7 @@ public:
         toggleVideoStream = 0
     }cameraControls;
     cv_bridge::CvImageConstPtr cv_ptr;
-    bool lockWhileWriting;
+    bool lockWhileWriting = false;
 private:
     ros::AsyncSpinner *spinner;
     bool initialized = false;

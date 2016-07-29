@@ -12,10 +12,11 @@ enum COLORS{
 
 //! standard query messages
 char welcomestring[] = "commandline tool for controlling raspberry pi motion capture system";
-char commandstring[] = "[0]toggle pose publishing, [1]show virtual marker, [2]stream video, [9]exit";
+char commandstring[] = "[0]toggle pose publishing, [1]show virtual marker, [2]stream video, [s]save camera image, [9]exit";
 char posepublishingstring[] = "pose publishing ";
 char virtualmarkerstring[] = "virtual marker rendering ";
 char streamvideostring[] = "stream video ";
+char savecameraimagestring[] = "saving camera image...";
 char onstring[] = "ON";
 char offstring[] = "OFF";
 char fpsstring[] =    "fps:          ";
@@ -79,6 +80,12 @@ public:
 		}
 		refresh();
 	}
+    void clear(uint fromrow, uint torow){
+        for(uint i=fromrow;i<=torow;i++){
+            print(i,0,cols," ");
+        }
+        refresh();
+    }
 	void clearAll(uint row){
 		for(uint i=row;i<rows;i++){
 			print(i,0,cols," ");
@@ -164,7 +171,8 @@ public:
     void showCameraInfo(){
         uint cam = 0, row = 6;
         for(auto state = markerTracker.cameraState.begin(); state != markerTracker.cameraState.end(); ++state) {
-            printMessage(6, cam*30, markerTracker.camera[state->first].name);
+            clear(row, row+5);
+            printMessage(row, cam*30, markerTracker.camera[state->first].name);
             switch(state->second){
                 case Uninitialized:
                     printMessage(row+1, cam*30, (char*)"Unintialized", COLOR_WHITE);
@@ -197,6 +205,23 @@ public:
             }
         }
     }
+    void saveCameraImage(){
+        if(!streamVideoFlag){
+            streamVideo();
+        }
+        bool saved = false;
+        while(!saved) {
+            if (!markerTracker.lockWhileWriting) {
+                char name[50];
+                sprintf(name, "camera_image_%d.jpg", image_counter++);
+                imwrite(name, markerTracker.cv_ptr->image);
+                printMessage(4, 0, savecameraimagestring);
+                usleep(1000000);
+                print(4, 0, cols, " ");
+                saved = true;
+            }
+        }
+    }
 private:
     Model *model;
     MarkerTracker markerTracker;
@@ -207,4 +232,5 @@ private:
 	char inputstring[30];
     Mat img;
     Matrix4f pose;
+    uint image_counter = 0;
 };

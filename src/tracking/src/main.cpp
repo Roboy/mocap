@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
     char cmd;
     noecho();
     do{
-        timeout(10);
+        timeout(100);
         cmd = mvgetch(4,0);
         switch (cmd){
             case '0':
@@ -65,6 +65,9 @@ int main(int argc, char *argv[]) {
                 break;
             case '2':
                 ncurse.streamVideo();
+                break;
+            case 's':
+                ncurse.saveCameraImage();
                 break;
         }
         ncurse.showCameraInfo();
