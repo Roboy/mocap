@@ -132,22 +132,22 @@ int CameraMarkerModel::track(const communication::MarkerPosition::ConstPtr& msg)
         ModelMatrix = RT*ModelMatrix;
 //            cout << "ModelMatrix : \n" << ModelMatrix  << endl;
 
-        Matrix3xMARKERd projectedPosition2D = K * pos3D.block<3,MARKER>(0,0);
-        origin2D = K * ModelMatrix.topRightCorner(3,1);
-        origin2D(0)/=origin2D(2);
-        origin2D(1)/=origin2D(2);
-        char name[1];
-        for(uint col = 0; col<MARKER; col ++){
-            projectedPosition2D(0,col)/=projectedPosition2D(2,col);
-            projectedPosition2D(1,col)/=projectedPosition2D(2,col);
-
-            float radius=10;
-            cv::Point2f center(projectedPosition2D(0,col), projectedPosition2D(1,col));
-            circle(img, center, radius, cv::Scalar(255, 0, 0), 4);
-            line(img, cv::Point2f(origin2D(0),origin2D(1)), center, cv::Scalar::all(255),4);
-            sprintf(name,"%d",markerIDs[col]);
-            putText(img,name,center,cv::FONT_HERSHEY_SCRIPT_SIMPLEX,1,cv::Scalar::all(0));
-        }
+//        Matrix3xMARKERd projectedPosition2D = K * pos3D.block<3,MARKER>(0,0);
+//        origin2D = K * ModelMatrix.topRightCorner(3,1);
+//        origin2D(0)/=origin2D(2);
+//        origin2D(1)/=origin2D(2);
+//        char name[1];
+//        for(uint col = 0; col<MARKER; col ++){
+//            projectedPosition2D(0,col)/=projectedPosition2D(2,col);
+//            projectedPosition2D(1,col)/=projectedPosition2D(2,col);
+//
+//            float radius=10;
+//            cv::Point2f center(projectedPosition2D(0,col), projectedPosition2D(1,col));
+//            circle(img, center, radius, cv::Scalar(255, 0, 0), 4);
+//            line(img, cv::Point2f(origin2D(0),origin2D(1)), center, cv::Scalar::all(255),4);
+//            sprintf(name,"%d",markerIDs[col]);
+//            putText(img,name,center,cv::FONT_HERSHEY_SCRIPT_SIMPLEX,1,cv::Scalar::all(0));
+//        }
 
         reprojectionError = lm->fnorm;
 
@@ -368,15 +368,11 @@ bool MarkerTracker::sendCameraControl(uint ID, uint control, bool value){
 }
 
 void MarkerTracker::videoCB(const sensor_msgs::ImageConstPtr& msg){
-    cv_bridge::CvImageConstPtr cv_ptr;
+    lockWhileWriting = true;
     try {
         cv_ptr = cv_bridge::toCvCopy(msg, "mono8");
     } catch (cv_bridge::Exception& e) {
         ROS_ERROR("cv_bridge exception: %s", e.what());
     }
-    // Update GUI Window
-    cv::Mat img(480,640,CV_8UC1);
-    cv_ptr->image.copyTo(img);
-    cv::imshow("video stream", img);
-    cv::waitKey(1);
+    lockWhileWriting = false;
 }

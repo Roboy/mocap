@@ -132,6 +132,8 @@ public:
     enum{
         toggleVideoStream = 0
     }cameraControls;
+    cv_bridge::CvImageConstPtr cv_ptr;
+    bool lockWhileWriting;
 private:
     ros::AsyncSpinner *spinner;
     bool initialized = false;
