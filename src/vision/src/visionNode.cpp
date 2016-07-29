@@ -96,9 +96,16 @@ void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_len
     markerPosition.header.seq = next_id++;
     markerPosition.cameraID = ID;
 
+    static uint counter = 0;
     t2 = std::chrono::high_resolution_clock::now();
     time_span = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
-    markerPosition.fps = (double)next_id/time_span.count();
+    markerPosition.fps = (double)counter/time_span.count();
+    counter++;
+
+    if(time_span.count()>30){ // reset every 30 seconds
+	counter = 0;
+	t1 = std::chrono::high_resolution_clock::now();
+    }
 
     cv::Mat filtered_img;
     cv::threshold(img_gray, filtered_img, threshold_value, 255, 3);
@@ -139,11 +146,10 @@ void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_len
     if(publish_video_flag){
         cv_bridge::CvImage cvImage;
         img_gray.copyTo(cvImage.image);
-        cvImage.encoding = "mono8";
         sensor_msgs::Image msg;
         cvImage.toImageMsg(msg);
-	msg.encoding = "mono8";
-	msg.header = markerPosition.header; 
+        msg.encoding = "mono8";
+       	msg.header = markerPosition.header;
         video_pub->publish(msg);
-    }
+   }
 }
