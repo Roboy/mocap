@@ -81,4 +81,20 @@ else ()
     TARGET_LINK_LIBRARIES(tracking_node ${SFML_LIBRARIES} ${glew_LIBRARIES} ${assimp_LIBRARIES} ${OPENGL_LIBRARIES}
             ${ImageMagick_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} ${SDFormat_LIBRARIES} ${BOOST_LIBRARIES} -lpthread
             ${catkin_LIBRARIES} ${ncurses_LIBRARIES} )
+
+        #==============================================================================
+        # Installation
+        #==============================================================================
+        install( TARGETS        
+                 tracking_node
+                 DESTINATION
+   	         ${CATKIN_PACKAGE_BIN_DESTINATION}
+	)
+
+	install(FILES 
+	        package.xml
+	        DESTINATION
+	        ${CATKIN_PACKAGE_SHARE_DESTINATION}
+	)
+
 endif ()
