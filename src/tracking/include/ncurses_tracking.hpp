@@ -1,7 +1,6 @@
 #pragma once
 
 #include "markertracker.hpp"
-#include "model.hpp"
 #include <ncurses.h>
 
 enum COLORS{
@@ -12,9 +11,8 @@ enum COLORS{
 
 //! standard query messages
 char welcomestring[] = "commandline tool for controlling raspberry pi motion capture system";
-char commandstring[] = "[0]toggle pose publishing, [1]show virtual marker, [2]stream video, [s]save camera image, [9]exit";
+char commandstring[] = "[0]toggle pose publishing, [1]stream video, [s]save camera image, [9]exit";
 char posepublishingstring[] = "pose publishing ";
-char virtualmarkerstring[] = "virtual marker rendering ";
 char streamvideostring[] = "stream video ";
 char savecameraimagestring[] = "saving camera image...";
 char onstring[] = "ON";
@@ -29,13 +27,7 @@ char byebyestring[] = "BYE BYE!";
 
 class NCurses_tracking{
 public:
-    NCurses_tracking(sf::Window *win):window(win){
-        model = new Model("/home/letrend/workspace/markertracker","markermodel.dae");
-        Vector3f cameraPosition(0,0,0);
-        Vector3f point(0,0,1);
-        // first person camera
-        model->lookAt(point,cameraPosition);
-
+    NCurses_tracking(){
         //! start ncurses mode
         initscr();
         //! Start color functionality
@@ -55,11 +47,8 @@ public:
         print(6,0,cols,"-");
         printMessage(3,0,commandstring);
 
-        window->setActive(virtualMarkerVisibleFlag);
-        window->setVisible(virtualMarkerVisibleFlag);
 	}
 	~NCurses_tracking(){
-        delete model;
 		clearAll(0);
 		printMessage(rows/2,cols/2-strlen(byebyestring)/2,byebyestring);
 		usleep(1000000);
@@ -141,24 +130,6 @@ public:
         usleep(500000);
         print(4,0,cols," ");
 	}
-    void toggleVirtualMarker(){
-        virtualMarkerVisibleFlag = !virtualMarkerVisibleFlag;
-        if(virtualMarkerVisibleFlag) {
-            window->setActive(virtualMarkerVisibleFlag);
-            window->setVisible(virtualMarkerVisibleFlag);
-            // update viewmatrix from user input
-            model->updateViewMatrix(*window);
-            // render the object with the updated modelmatrix
-            pose = markerTracker.ModelMatrix.cast<float>();
-            model->render(pose, img);
-            window->display();
-        }
-        print(4,0,cols," ");
-        printMessage(4,0,virtualmarkerstring);
-        printMessage(4,strlen(virtualmarkerstring),virtualMarkerVisibleFlag ? onstring:offstring, GREEN);
-        usleep(500000);
-        print(4,0,cols," ");
-    }
     void streamVideo(){
         streamVideoFlag = !streamVideoFlag;
         markerTracker.sendCameraControl(0,0,streamVideoFlag);
@@ -223,9 +194,7 @@ public:
         }
     }
 private:
-    Model *model;
     MarkerTracker markerTracker;
-    sf::Window *window;
 	uint rows, cols, camerasPerRow;
     bool virtualMarkerVisibleFlag = false, pubishPoseFlag = true, streamVideoFlag = false;
 	float pos;

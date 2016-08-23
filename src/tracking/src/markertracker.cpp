@@ -284,7 +284,7 @@ MarkerTracker::MarkerTracker(){
     spinner = new ros::AsyncSpinner(5);
     spinner->start();
     marker_position_sub = nh.subscribe("/raspicamera/marker_position", 1, &MarkerTracker::pipe2function, this);
-    rviz_marker_pub=nh.advertise<visualization_msgs::Marker>("/visualization_marker", 1000);
+    rviz_marker_pub=nh.advertise<visualization_msgs::Marker>("/visualization_marker", 1);
     camera_control_pub=nh.advertise<communication::CameraControl>("/camera_control", 1000);
     video_sub=nh.subscribe("/raspicamera/video", 1, &MarkerTracker::videoCB, this);
 }
@@ -333,6 +333,36 @@ void MarkerTracker::pipe2function(const communication::MarkerPosition::ConstPtr&
             }
             case Tracking:{
                 cameraState[msg->cameraID] = it->second.track(msg);
+                if(cameraState[msg->cameraID]!=Error) {
+                    static uint next_id = 0;
+                    visualization_msgs::Marker marker;
+                    marker.header.frame_id = "map";
+                    marker.header.stamp = ros::Time::now();
+                    marker.header.seq = next_id++;
+                    marker.ns = "markertracker";
+                    marker.id = next_id;
+                    marker.type = visualization_msgs::Marker::CUBE;
+                    marker.action = visualization_msgs::Marker::ADD;
+                    Matrix3d pose = camera[msg->cameraID].ModelMatrix.topLeftCorner(3,3);
+                    Quaterniond q(pose);
+                    Vector3d position = camera[msg->cameraID].ModelMatrix.topRightCorner(3,1);
+                    marker.pose.position.x = position(0);
+                    marker.pose.position.y = position(1);
+                    marker.pose.position.z = position(2);
+                    marker.pose.orientation.x = q.x();
+                    marker.pose.orientation.y = q.y();
+                    marker.pose.orientation.z = q.z();
+                    marker.pose.orientation.w = q.w();
+                    marker.scale.x = 0.01f;
+                    marker.scale.y = 0.01f;
+                    marker.scale.z = 0.01f;
+                    marker.color.r = 0;
+                    marker.color.g = 1;
+                    marker.color.b = 0;
+                    marker.color.a = 1;
+                    marker.lifetime = ros::Duration(30);
+                    rviz_marker_pub.publish(marker);
+                }
                 break;
             }
             case Error:{

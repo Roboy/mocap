@@ -16,9 +16,6 @@
 #include <algorithm>
 #include <thread>
 #include <future>
-#define GLM_FORCE_RADIANS
-#include <glm/detail/type_mat.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 // ros
 #include <ros/ros.h>
 #include <communication/Vector2.h>
@@ -32,6 +29,7 @@
 #define MARKER 4
 using namespace std;
 using namespace Eigen;
+using namespace cv;
 
 typedef enum
 {

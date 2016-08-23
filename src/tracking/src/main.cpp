@@ -1,55 +1,11 @@
-// Include GLEW
-#include <GL/glew.h>
-// Include sfml
-#include <SFML/Window.hpp>
-
 #include "ncurses_tracking.hpp"
 
-#define WINDOW_WIDTH 640
-#define WINDOW_HEIGHT 480
-
 using namespace std;
-
-typedef enum
-{
-    Render,
-    Publish
-} ActionState;
-
-static std::map<ActionState, std::string> state_strings = {
-        { Render,                   "Render screen" },
-        { Publish,                  "Publish the pose" }
-};
-
-ActionState NextState(ActionState s)
-{
-    ActionState newstate;
-    switch (s)
-    {
-        case Render:
-            newstate = Publish;
-            break;
-        case Publish:
-            newstate = Render;
-            break;
-    }
-    return newstate;
-}
 
 int main(int argc, char *argv[]) {
     ros::init(argc, argv, "tracking_node");
 
-    // create sfml window
-    sf::ContextSettings settings;
-    settings.depthBits = 24;
-    settings.stencilBits = 8;
-    sf::Window window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT, 32), "Marker Tracker", sf::Style::Titlebar | sf::Style::Close, settings);
-
-    // Initialize GLEW
-    glewExperimental = GL_TRUE;
-    glewInit();
-
-    NCurses_tracking ncurse(&window);
+    NCurses_tracking ncurse;
 
     char cmd;
     noecho();
@@ -61,9 +17,6 @@ int main(int argc, char *argv[]) {
                 ncurse.togglePosePublishing();
                 break;
             case '1':
-                ncurse.toggleVirtualMarker();
-                break;
-            case '2':
                 ncurse.streamVideo();
                 break;
             case 's':

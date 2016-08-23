@@ -3,7 +3,7 @@ project(communication)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-find_package(catkin REQUIRED cmake_modules COMPONENTS roscpp std_msgs message_generation )
+find_package(catkin REQUIRED COMPONENTS roscpp std_msgs message_generation )
 
 add_message_files(
         DIRECTORY
