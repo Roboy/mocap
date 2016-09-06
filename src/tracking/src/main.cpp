@@ -19,6 +19,9 @@ int main(int argc, char *argv[]) {
             case '1':
                 ncurse.streamVideo();
                 break;
+            case '2':
+                ncurse.reinitialize();
+                break;
             case 's':
                 ncurse.saveCameraImage();
                 break;

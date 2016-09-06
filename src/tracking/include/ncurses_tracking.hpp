@@ -11,7 +11,7 @@ enum COLORS{
 
 //! standard query messages
 char welcomestring[] = "commandline tool for controlling raspberry pi motion capture system";
-char commandstring[] = "[0]toggle pose publishing, [1]stream video, [s]save camera image, [9]exit";
+char commandstring[] = "[0]toggle pose publishing, [1]stream video, [2] reinitialize, [s]save camera image, [9]exit";
 char posepublishingstring[] = "pose publishing ";
 char streamvideostring[] = "stream video ";
 char savecameraimagestring[] = "saving camera image...";
@@ -112,18 +112,12 @@ public:
 		mvchgat(5, a+1, a+1+c, A_BLINK, 1, NULL);
 		timeout(10);
 		do{
-//			querySensoryData();
 			cmd = mvgetch(5,a+1+c);
 		}while(cmd != 'q');
 		timeout(-1);
 	}
 	void togglePosePublishing(){
         pubishPoseFlag = !pubishPoseFlag;
-        if(pubishPoseFlag){
-            markerTracker.rviz_marker_pub = markerTracker.nh.advertise<visualization_msgs::Marker>("/visualization_marker", 1000);
-        }else{
-            markerTracker.rviz_marker_pub.shutdown();
-        }
         print(4,0,cols," ");
         printMessage(4,0,posepublishingstring);
         printMessage(4,strlen(posepublishingstring),pubishPoseFlag ? onstring:offstring, GREEN);
@@ -171,7 +165,14 @@ public:
         }
         if(streamVideoFlag){
             if(!markerTracker.lockWhileWriting) {
-                cv::imshow("video stream", markerTracker.cv_ptr->image);
+                cv::Mat img(markerTracker.cv_ptr->image.rows, markerTracker.cv_ptr->image.cols, CV_8UC3);
+                markerTracker.cv_ptr->image.convertTo(img, CV_GRAY2RGB);
+                for (uint i = 0; i < markerTracker.markerPositions.size(); i++) {
+                    cv::Point2f center(markerTracker.markerPositions[i][0], markerTracker.markerPositions[i][1]);
+                    circle(img, center, 5, cv::Scalar(0, 255, 0), 4);
+                }
+
+                cv::imshow("video stream", img);
                 cv::waitKey(1);
             }
         }
@@ -192,6 +193,9 @@ public:
                 saved = true;
             }
         }
+    }
+    void reinitialize(){
+        markerTracker.cameraState[0] = Uninitialized;
     }
 private:
     MarkerTracker markerTracker;

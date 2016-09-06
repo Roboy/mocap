@@ -37,7 +37,7 @@ else ()
     # Application
     #==============================================================================
 
-    ADD_EXECUTABLE(tracking_node src/markertracker.cpp src/main.cpp)
+    ADD_EXECUTABLE(tracking_node src/markertracker.cpp src/main.cpp src/cameraMarkerModel.cpp)
     add_dependencies(tracking_node communication_gencpp)
     TARGET_LINK_LIBRARIES(tracking_node ${OpenCV_LIBS}  ${catkin_LIBRARIES} ${ncurses_LIBRARIES} -lpthread )
 
