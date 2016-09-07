@@ -6,14 +6,14 @@ PROJECT(tracking_node C CXX)
 SET(CMAKE_BUILD_TYPE Debug FORCE)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++11 -DMAGICKCORE_QUANTUM_DEPTH=16 -DMAGICKCORE_HDRI_ENABLE=0")
 
-# ros
-find_package(catkin REQUIRED COMPONENTS roscpp std_msgs sensor_msgs cv_bridge image_transport visualization_msgs rviz)
-catkin_package(CATKIN_DEPENDS message_runtime)
-
-execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE PROCESSORTYPE)
-if (PROCESSORTYPE STREQUAL "armhf")
+execute_process(COMMAND grep -o BCM2709 /proc/cpuinfo OUTPUT_VARIABLE IAMRASPBERRYPI3)
+if (IAMRASPBERRYPI3)
     message(STATUS "tracking_node is supposed to run on host not raspi, aborting generation")
 else ()
+	message(STATUS ${PROCESSORTYPE})
+    # ros
+    find_package(catkin REQUIRED COMPONENTS roscpp std_msgs sensor_msgs cv_bridge image_transport visualization_msgs rviz)
+    catkin_package(CATKIN_DEPENDS message_runtime)
     #==============================================================================
     # Dependencies
     #==============================================================================

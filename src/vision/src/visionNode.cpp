@@ -1,7 +1,7 @@
 #include "visionNode.hpp"
 
-uint VisionNode::ID = 0;
-int VisionNode::threshold_value = 250;
+int VisionNode::ID = 0;
+int VisionNode::threshold_value = 240;
 std::chrono::high_resolution_clock::time_point VisionNode::t1;
 std::chrono::high_resolution_clock::time_point VisionNode::t2;
 std::chrono::duration<double> VisionNode::time_span;
@@ -10,6 +10,7 @@ Mat VisionNode::img_rectified = Mat(HEIGHT, WIDTH, CV_8UC4, VisionNode::img_rect
 Mat VisionNode::img_gray = Mat(HEIGHT, WIDTH, CV_8UC1, VisionNode::img_gray_data);
 ros::Publisher* VisionNode::marker_position_pub = NULL;
 ros::Publisher* VisionNode::video_pub = NULL;
+ros::Publisher* VisionNode::cameraID_pub = NULL;
 unsigned char* VisionNode::img_data = new unsigned char[WIDTH*HEIGHT*4];
 unsigned char* VisionNode::img_rectified_data = new unsigned char[WIDTH*HEIGHT*4];
 unsigned char* VisionNode::img_gray_data = new unsigned char[WIDTH*HEIGHT];
@@ -36,26 +37,33 @@ VisionNode::VisionNode() {
                             cv::Size(WIDTH, HEIGHT), CV_16SC2, map1, map2);
 
     marker_position_pub = new ros::Publisher;
-    *marker_position_pub = nh.advertise<communication::MarkerPosition>("/mocap/marker_position", 1000);
+    *marker_position_pub = nh.advertise<communication::MarkerPosition>("/mocap/marker_position", 100);
 
     video_pub = new ros::Publisher;
     *video_pub = nh.advertise<sensor_msgs::Image>("/mocap/video", 1);
 
-    camera_control_sub = nh.subscribe("/mocap/camera_control", 1000, &VisionNode::camera_control, this);
+    camera_control_sub = nh.subscribe("/mocap/camera_control", 100, &VisionNode::camera_control, this);
+
+    cameraID_pub = new ros::Publisher;
+    *cameraID_pub = nh.advertise<std_msgs::Int32>("/mocap/cameraID", 100);
 
     // Publish the marker
-    while (marker_position_pub->getNumSubscribers() < 1) {
+    while (cameraID_pub->getNumSubscribers() < 1) {
         ros::Duration d(1.0);
         if (!ros::ok()) {
             return;
         }
-        ROS_WARN_ONCE("Please create a subscriber to the marker position");
+        ROS_WARN_ONCE("Waiting for mocap plugin to subscribe to /mocap/cameraID");
         d.sleep();
     }
     ROS_INFO_ONCE("Found subscriber");
 
     spinner = new ros::AsyncSpinner(1);
     spinner->start();
+
+    std_msgs::Int32 msg;
+    msg.data = ID;
+    cameraID_pub->publish(msg);
 
     img = cv::Mat(HEIGHT, WIDTH, CV_8UC4, img_data);
     img_rectified = cv::Mat(HEIGHT, WIDTH, CV_8UC4, img_rectified_data);
@@ -103,8 +111,11 @@ void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_len
     counter++;
 
     if(time_span.count()>30){ // reset every 30 seconds
-	counter = 0;
-	t1 = std::chrono::high_resolution_clock::now();
+        counter = 0;
+        t1 = std::chrono::high_resolution_clock::now();
+        std_msgs::Int32 msg;
+        msg.data = ID;
+        cameraID_pub->publish(msg);
     }
 
     cv::Mat filtered_img;
@@ -117,7 +128,7 @@ void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_len
                  cv::Point(0, 0));
 
     // filter out tiny useless contours
-    double min_contour_area = 60;
+    double min_contour_area = 10;
     for (auto it = contours.begin(); it != contours.end();) {
         if (contourArea(*it) < min_contour_area) {
             it = contours.erase(it);
@@ -127,12 +138,10 @@ void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_len
         }
     }
 
-    // get centers and publish
-    vector <cv::Point2f> centers(contours.size());
+    // publish the markerPositions
+    vector<cv::Point2f> centers(contours.size());
     vector<float> radius(contours.size());
     for (int idx = 0; idx < contours.size(); idx++) {
-        drawContours(img_gray, contours, idx, cv::Scalar(0, 0, 0), 4, 8, hierarchy, 0,
-                     cv::Point());
         minEnclosingCircle(contours[idx], centers[idx], radius[idx]);
         communication::Vector2 pos;
         pos.x = centers[idx].x;
@@ -145,6 +154,11 @@ void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_len
     marker_position_pub->publish(markerPosition);
 
     if(publish_video_flag){
+        // get centers and publish
+        for (int idx = 0; idx < contours.size(); idx++) {
+            drawContours(img_gray, contours, idx, cv::Scalar(0, 0, 0), 4, 8, hierarchy, 0,
+                         cv::Point());
+        }
         cv_bridge::CvImage cvImage;
         img_gray.copyTo(cvImage.image);
         sensor_msgs::Image msg;

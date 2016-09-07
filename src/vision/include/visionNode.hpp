@@ -2,21 +2,19 @@
 
 // ros
 #include <ros/ros.h>
+// opencv
+#include "opencv2/opencv.hpp"
+// picam
+#include "camera.h"
+//std 
+#include <chrono>
+// messages
 #include <communication/MarkerPosition.h>
 #include <communication/CameraControl.h>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
-
-// opencv
-#include "opencv2/opencv.hpp"
-
-// picam
-#include "camera.h"
-#include <opencv2/opencv.hpp>
-
-//std 
-#include <chrono>
+#include <std_msgs/Int32.h>
 
 #define WIDTH 640
 #define HEIGHT 480
@@ -37,12 +35,12 @@ private:
     static std::chrono::high_resolution_clock::time_point t1;
     static std::chrono::high_resolution_clock::time_point t2;
     static std::chrono::duration<double> time_span;
-    static uint ID;
+    static int ID;
     Mat cameraMatrix, distCoeffs;
     static Mat map1, map2;
     Mat myuv;
     ros::NodeHandle nh;
-    static ros::Publisher *marker_position_pub, *video_pub;
+    static ros::Publisher *marker_position_pub, *video_pub, *cameraID_pub;
     ros::Subscriber camera_control_sub;
     ros::AsyncSpinner *spinner;
     static Mat img, img_rectified, img_gray;

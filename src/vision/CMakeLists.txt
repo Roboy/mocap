@@ -18,8 +18,8 @@ SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake )
 find_package(catkin REQUIRED COMPONENTS roscpp std_msgs sensor_msgs cv_bridge image_transport)
 catkin_package(CATKIN_DEPENDS message_runtime)
 
-execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE PROCESSORTYPE)
-if ( NOT PROCESSORTYPE STREQUAL "armhf") 
+execute_process(COMMAND grep -o BCM2709 /proc/cpuinfo OUTPUT_VARIABLE IAMRASPBERRYPI3)
+if (NOT IAMRASPBERRYPI3)
     message(STATUS "vision_node is supposed to run on raspi not host, aborting generation")
 else ()
     #==============================================================================
