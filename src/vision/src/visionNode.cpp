@@ -1,7 +1,7 @@
 #include "visionNode.hpp"
 
 uint VisionNode::ID = 0;
-int VisionNode::threshold_value = 240;
+int VisionNode::threshold_value = 250;
 std::chrono::high_resolution_clock::time_point VisionNode::t1;
 std::chrono::high_resolution_clock::time_point VisionNode::t2;
 std::chrono::duration<double> VisionNode::time_span;
@@ -18,7 +18,7 @@ Mat VisionNode::map2;
 bool VisionNode::publish_video_flag = false;
 
 VisionNode::VisionNode() {
-    cv::FileStorage fs("/home/letrend/workspace/mocap/src/intrinsics.xml", cv::FileStorage::READ);
+    cv::FileStorage fs("/home/roboy/workspace/mocap/src/intrinsics.xml", cv::FileStorage::READ);
     if (!fs.isOpened()) {
         ROS_ERROR("could not open intrinsics.xml");
         return;
@@ -36,12 +36,12 @@ VisionNode::VisionNode() {
                             cv::Size(WIDTH, HEIGHT), CV_16SC2, map1, map2);
 
     marker_position_pub = new ros::Publisher;
-    *marker_position_pub = nh.advertise<communication::MarkerPosition>("/raspicamera/marker_position", 1000);
+    *marker_position_pub = nh.advertise<communication::MarkerPosition>("/mocap/marker_position", 1000);
 
     video_pub = new ros::Publisher;
-    *video_pub = nh.advertise<sensor_msgs::Image>("/raspicamera/video", 1);
+    *video_pub = nh.advertise<sensor_msgs::Image>("/mocap/video", 1);
 
-    camera_control_sub = nh.subscribe("/camera_control", 1000, &VisionNode::camera_control, this);
+    camera_control_sub = nh.subscribe("/mocap/camera_control", 1000, &VisionNode::camera_control, this);
 
     // Publish the marker
     while (marker_position_pub->getNumSubscribers() < 1) {
@@ -131,8 +131,8 @@ void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_len
     vector <cv::Point2f> centers(contours.size());
     vector<float> radius(contours.size());
     for (int idx = 0; idx < contours.size(); idx++) {
-        //drawContours(img, contours, idx, cv::Scalar(255, 0, 0), 4, 8, hierarchy, 0,
-        //             cv::Point());
+        drawContours(img_gray, contours, idx, cv::Scalar(0, 0, 0), 4, 8, hierarchy, 0,
+                     cv::Point());
         minEnclosingCircle(contours[idx], centers[idx], radius[idx]);
         communication::Vector2 pos;
         pos.x = centers[idx].x;
@@ -141,6 +141,7 @@ void VisionNode::CameraCallback(CCamera *cam, const void *buffer, int buffer_len
     }
     //imshow("camera", img);
     //waitKey(1);
+    markerPosition.markerVisible=contours.size();
     marker_position_pub->publish(markerPosition);
 
     if(publish_video_flag){
