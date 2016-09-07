@@ -26,7 +26,7 @@
 #include "communication/CameraControl.h"
 #include "communication/MarkerPosition.h"
 #include <visualization_msgs/Marker.h>
-
+#include <std_msgs/Int32.h>
 #include "cameraMarkerModel.hpp"
 
 #endif
@@ -88,10 +88,6 @@ public:
      */
     void pipe2function(const communication::MarkerPosition::ConstPtr& msg);
 
-    void sendCameraControl(const communication::CameraControl::ConstPtr &msg);
-
-
-
 public Q_SLOTS:
     void initializeCameras();
 
@@ -102,7 +98,7 @@ public Q_SLOTS:
     void videoCB(const sensor_msgs::ImageConstPtr& msg);
 
 private:
-    void updateId(const communication::MarkerPosition::ConstPtr &msg);
+    void updateId(const std_msgs::Int32::ConstPtr &msg);
 
     ros::NodeHandle *nh;
     bool initialized = false;

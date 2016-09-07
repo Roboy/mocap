@@ -55,14 +55,55 @@ struct Functor
 
 struct CameraMarkerModel:Functor<double>{
     CameraMarkerModel();
+    /**
+     * This function initializes the markerModel
+     * @param msg Message from Camera containing 2D marker positions in image
+     * @return Uninitialized if reprojectionError < 2.0, else Initialized
+     */
     int initializeModel(const communication::MarkerPosition::ConstPtr& msg);
+    /**
+     * This function tracks the markerModel
+     * @param msg Message from Camera containing 2D marker positions in image
+     * @return Tracking if 4 Marker are visible, else Error
+     */
     int track(const communication::MarkerPosition::ConstPtr& msg);
-
+    /**
+     * This function permutes every possible combination of 3D MarkerPositions and sets the one
+     * with the lowest reprojectionError
+     */
     void checkCorrespondence();
+    /**
+     * This function projects the 3D markerPositions of the tracking result into 2D image plane positions
+     */
+    void updateProjectedMarkerPositions();
+    /**
+     * projects 3D points into 2D using the camera intrinsics matrix K
+     * @param position2d 2D projected positions
+     * @param position3d 3D positions
+     * @param RT pose matrix
+     */
     void projectInto2D(Matrix3xMARKERd &position2d, Matrix4xMARKERd &position3d, Matrix3x4d &RT);
-    void getRTmatrix(VectorXd &x, Matrix3x4d &RT);
+    /**
+     * This function calculates the pose matrix from the current pose of the tracked model
+     * @param RT reference to double pose matrix (will be filled)
+     */
+    void getRTmatrix(Matrix3x4d &RT);
+    /**
+     * This function calculates the pose matrix from the current pose of the tracked model
+     * @param RT reference to double pose matrix (will be filled)
+     */
     void getRTmatrix(Matrix4d &RT);
+    /**
+     * This function calculates the pose matrix from the current pose of the tracked model
+     * @param RT reference to float pose matrix (will be filled)
+     */
     void getRTmatrix(Matrix4f &RT);
+    /**
+     * Function used by minimizer
+     * @param x pose vector (3 translation, 3 rotation parameters)
+     * @param fvec reprojection error
+     * @return minimization state
+     */
     int operator()(const VectorXd &x, VectorXd &fvec) const;
     VectorXd pose;
     Matrix4d ModelMatrix;
@@ -75,7 +116,7 @@ struct CameraMarkerModel:Functor<double>{
     cv::Mat img, img_rectified;
     cv::Mat map1, map2;
     cv::VideoCapture capture;
-    uint id;
+    int id;
     char name[20];
     Matrix3d K;
     int threshold_value = 240;

@@ -25,10 +25,10 @@ CameraMarkerModel::CameraMarkerModel(void): Functor<double>(6,2*MARKER){
 
 int CameraMarkerModel::initializeModel(const communication::MarkerPosition::ConstPtr& msg){
     // this is the representation of the marker
-    pos3D(0,0)=0;       pos3D(1,0)=-0.105;   pos3D(2,0)=0;       pos3D(3,0)=1;
-    pos3D(0,1)=0;       pos3D(1,1)=0;       pos3D(2,1)=-0.055;   pos3D(3,1)=1;
-    pos3D(0,2)=-0.075;   pos3D(1,2)=0;       pos3D(2,2)=0;       pos3D(3,2)=1;
-    pos3D(0,3)=0.135;  pos3D(1,3)=0;       pos3D(2,3)=0;  pos3D(3,3)=1;
+    pos3D(0,0)=0;       pos3D(1,0)=-0.104;   pos3D(2,0)=0;       pos3D(3,0)=1;
+    pos3D(0,1)=0;       pos3D(1,1)=0;       pos3D(2,1)=-0.05;   pos3D(3,1)=1;
+    pos3D(0,2)=-0.073;   pos3D(1,2)=0;       pos3D(2,2)=0;       pos3D(3,2)=1;
+    pos3D(0,3)=0.133;  pos3D(1,3)=0;       pos3D(2,3)=0;  pos3D(3,3)=1;
 
     origin3D << 0,0,0,1;
     origin2D << 0,0,1;
@@ -72,26 +72,17 @@ int CameraMarkerModel::initializeModel(const communication::MarkerPosition::Cons
 //    cout << "iterations: " << lm->iter << endl;
 //    cout << "x that minimizes the function: \n" << pose << endl;
 
-        Matrix4d RT;
-        getRTmatrix(RT);
-//                    cout << "RT: \n" << RT << endl;
-        pos3D = RT*pos3D;
-        ModelMatrix = RT*ModelMatrix;
-//            cout << "ModelMatrix : \n" << ModelMatrix  << endl;
+        reprojectionError = lm->fnorm;
 
-        projectedPosition2D = K * pos3D.block<3,MARKER>(0,0);
-        origin2D = K * ModelMatrix.topRightCorner(3,1);
-        origin2D(0)/=origin2D(2);
-        origin2D(1)/=origin2D(2);
-        for(uint col = 0; col<MARKER; col ++){
-            projectedPosition2D(0,col)/=projectedPosition2D(2,col);
-            projectedPosition2D(1,col)/=projectedPosition2D(2,col);
-        }
+        updateProjectedMarkerPositions();
 
         delete numDiff;
         delete lm;
 
-        return CameraState::Initialized;
+        if(reprojectionError < 2.0)
+            return CameraState::Initialized;
+        else
+            return CameraState::Uninitialized;
     }else{
         return CameraState::Uninitialized;
     }
@@ -100,7 +91,7 @@ int CameraMarkerModel::initializeModel(const communication::MarkerPosition::Cons
 int CameraMarkerModel::track(const communication::MarkerPosition::ConstPtr& msg){
     reprojectionError = 1000000;
 
-    if (msg->marker_position.size() == 4) {
+    if (msg->marker_position.size() == MARKER) {
         // copy points
         for (int idx = 0; idx < msg->marker_position.size(); idx++) {
             pos2D(0, idx) = msg->marker_position[idx].x;
@@ -118,23 +109,9 @@ int CameraMarkerModel::track(const communication::MarkerPosition::ConstPtr& msg)
 //                    cout << "iterations: " << lm->iter << endl;
 //                    cout << "x that minimizes the function: \n" << pose << endl;
 
-        Matrix4d RT;
-        getRTmatrix(RT);
-//                    cout << "RT: \n" << RT << endl;
-        pos3D = RT*pos3D;
-        ModelMatrix = RT*ModelMatrix;
-//            cout << "ModelMatrix : \n" << ModelMatrix  << endl;
-
-        projectedPosition2D = K * pos3D.block<3,MARKER>(0,0);
-        origin2D = K * ModelMatrix.topRightCorner(3,1);
-        origin2D(0)/=origin2D(2);
-        origin2D(1)/=origin2D(2);
-        for(uint col = 0; col<MARKER; col ++){
-            projectedPosition2D(0,col)/=projectedPosition2D(2,col);
-            projectedPosition2D(1,col)/=projectedPosition2D(2,col);
-        }
-
         reprojectionError = lm->fnorm;
+
+        updateProjectedMarkerPositions();
 
         delete numDiff;
         delete lm;
@@ -146,7 +123,7 @@ int CameraMarkerModel::track(const communication::MarkerPosition::ConstPtr& msg)
 
 void CameraMarkerModel::checkCorrespondence(){
     Matrix3x4d RT;
-    getRTmatrix(pose,RT);
+    getRTmatrix(RT);
     Matrix4xMARKERd pos3D_backup = pos3D;
 
     vector<uint> perm = {0,1,2,3};
@@ -184,6 +161,24 @@ void CameraMarkerModel::checkCorrespondence(){
             1, 1, 1, 1;
 }
 
+void CameraMarkerModel::updateProjectedMarkerPositions(){
+    Matrix4d RT;
+    getRTmatrix(RT);
+//                    cout << "RT: \n" << RT << endl;
+    pos3D = RT*pos3D;
+    ModelMatrix = RT*ModelMatrix;
+//            cout << "ModelMatrix : \n" << ModelMatrix  << endl;
+
+    projectedPosition2D = K * pos3D.block<3,MARKER>(0,0);
+    origin2D = K * ModelMatrix.topRightCorner(3,1);
+    origin2D(0)/=origin2D(2);
+    origin2D(1)/=origin2D(2);
+    for(uint col = 0; col<MARKER; col ++){
+        projectedPosition2D(0,col)/=projectedPosition2D(2,col);
+        projectedPosition2D(1,col)/=projectedPosition2D(2,col);
+    }
+}
+
 void CameraMarkerModel::projectInto2D(Matrix3xMARKERd &position2d, Matrix4xMARKERd &position3d, Matrix3x4d &RT) {
     position2d = K * RT * position3d;
     for(uint col = 0; col<MARKER; col ++){
@@ -192,7 +187,7 @@ void CameraMarkerModel::projectInto2D(Matrix3xMARKERd &position2d, Matrix4xMARKE
     }
 }
 
-void CameraMarkerModel::getRTmatrix(VectorXd &x, Matrix3x4d &RT){
+void CameraMarkerModel::getRTmatrix(Matrix3x4d &RT){
     RT = MatrixXd::Identity(3,4);
     // construct quaternion (cf unit-sphere projection Terzakis paper)
     double alpha_squared = pow(pow(pose(0),2.0)+pow(pose(1),2.0)+pow(pose(2),2.0),2.0);
