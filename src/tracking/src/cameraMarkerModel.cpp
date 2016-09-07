@@ -1,34 +1,34 @@
-#include "markertracker.hpp"
+#include "cameraMarkerModel.hpp"
 
 CameraMarkerModel::CameraMarkerModel(void): Functor<double>(6,2*MARKER){
     pose = VectorXd(6);
     markerIDs.resize(MARKER);
     Trafo2FirstCamera = Matrix4d::Identity();
 
-//    cv::Mat cameraMatrix, distCoeffs;
-//    cv::FileStorage fs("/home/letrend/workspace/mocap/src/intrinsics.xml",cv::FileStorage::READ);
-//    fs["camera_matrix"] >> cameraMatrix;
-//    fs["distortion_coefficients"] >> distCoeffs;
-//    fs.release();
-//
-//    // calculate undistortion mapping
-//    cv::initUndistortRectifyMap(cameraMatrix, distCoeffs, cv::Mat(),
-//                                cv::getOptimalNewCameraMatrix(cameraMatrix, distCoeffs, cv::Size(640,480), 1, cv::Size(640,480), 0),
-//                                cv::Size(640,480), CV_16SC2, map1, map2);
-//
-//    //std::cout<< "cameraMatrix: \n" << cameraMatrix << "\ndistCoeffs: \n" << distCoeffs << std::endl;
-//
-//    // camera intrinsic matrix
-//    K = Matrix3d((double*)cameraMatrix.data).transpose();
-//    //cout << "camera instrinsics:\n" << K << endl;
+    cv::Mat cameraMatrix, distCoeffs;
+    cv::FileStorage fs("/home/letrend/workspace/mocap/src/intrinsics.xml",cv::FileStorage::READ);
+    fs["camera_matrix"] >> cameraMatrix;
+    fs["distortion_coefficients"] >> distCoeffs;
+    fs.release();
+
+    // calculate undistortion mapping
+    cv::initUndistortRectifyMap(cameraMatrix, distCoeffs, cv::Mat(),
+                                cv::getOptimalNewCameraMatrix(cameraMatrix, distCoeffs, cv::Size(640,480), 1, cv::Size(640,480), 0),
+                                cv::Size(640,480), CV_16SC2, map1, map2);
+
+    //std::cout<< "cameraMatrix: \n" << cameraMatrix << "\ndistCoeffs: \n" << distCoeffs << std::endl;
+
+    // camera intrinsic matrix
+    K = Matrix3d((double*)cameraMatrix.data).transpose();
+    //cout << "camera instrinsics:\n" << K << endl;
 };
 
 int CameraMarkerModel::initializeModel(const communication::MarkerPosition::ConstPtr& msg){
     // this is the representation of the marker
-    pos3D(0,0)=0;       pos3D(1,0)=-0.123;   pos3D(2,0)=0;       pos3D(3,0)=1;
-    pos3D(0,1)=0;       pos3D(1,1)=0;       pos3D(2,1)=-0.08;   pos3D(3,1)=1;
-    pos3D(0,2)=-0.105;   pos3D(1,2)=0;       pos3D(2,2)=0;       pos3D(3,2)=1;
-    pos3D(0,3)=0.182;  pos3D(1,3)=0;       pos3D(2,3)=0;  pos3D(3,3)=1;
+    pos3D(0,0)=0;       pos3D(1,0)=-0.105;   pos3D(2,0)=0;       pos3D(3,0)=1;
+    pos3D(0,1)=0;       pos3D(1,1)=0;       pos3D(2,1)=-0.055;   pos3D(3,1)=1;
+    pos3D(0,2)=-0.075;   pos3D(1,2)=0;       pos3D(2,2)=0;       pos3D(3,2)=1;
+    pos3D(0,3)=0.135;  pos3D(1,3)=0;       pos3D(2,3)=0;  pos3D(3,3)=1;
 
     origin3D << 0,0,0,1;
     origin2D << 0,0,1;
@@ -72,28 +72,21 @@ int CameraMarkerModel::initializeModel(const communication::MarkerPosition::Cons
 //    cout << "iterations: " << lm->iter << endl;
 //    cout << "x that minimizes the function: \n" << pose << endl;
 
-//        Matrix3x4d RT;
-//        getRTmatrix(pose, RT);
-//
-//        Matrix3xMARKERd projectedPosition2D = K * RT * pos3D;
-//        origin2D = K * RT * origin3D;
-//        origin2D(0) /= origin2D(2);
-//        origin2D(1) /= origin2D(2);
-//        char str[1];
-//        for (uint col = 0; col < MARKER; col++) {
-//            projectedPosition2D(0, col) /= projectedPosition2D(2, col);
-//            projectedPosition2D(1, col) /= projectedPosition2D(2, col);
-//
-//            cv::Point2f center(projectedPosition2D(0, col), projectedPosition2D(1, col));
-//            circle(img, center, 5, cv::Scalar(255, 255, 0), 4);
-//            line(img, cv::Point2f(origin2D(0), origin2D(1)), center, cv::Scalar::all(255), 4);
-//            sprintf(str, "%d", markerIDs[col]);
-//            putText(img, str, center, cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 1, cv::Scalar::all(255));
-//        }
-////    cout << "projectedPosition2D: \n" << projectedPosition2D << endl;
-//
-//        cv::imshow(name, img);
-//        cv::waitKey(1);
+        Matrix4d RT;
+        getRTmatrix(RT);
+//                    cout << "RT: \n" << RT << endl;
+        pos3D = RT*pos3D;
+        ModelMatrix = RT*ModelMatrix;
+//            cout << "ModelMatrix : \n" << ModelMatrix  << endl;
+
+        projectedPosition2D = K * pos3D.block<3,MARKER>(0,0);
+        origin2D = K * ModelMatrix.topRightCorner(3,1);
+        origin2D(0)/=origin2D(2);
+        origin2D(1)/=origin2D(2);
+        for(uint col = 0; col<MARKER; col ++){
+            projectedPosition2D(0,col)/=projectedPosition2D(2,col);
+            projectedPosition2D(1,col)/=projectedPosition2D(2,col);
+        }
 
         delete numDiff;
         delete lm;
@@ -132,22 +125,14 @@ int CameraMarkerModel::track(const communication::MarkerPosition::ConstPtr& msg)
         ModelMatrix = RT*ModelMatrix;
 //            cout << "ModelMatrix : \n" << ModelMatrix  << endl;
 
-//        Matrix3xMARKERd projectedPosition2D = K * pos3D.block<3,MARKER>(0,0);
-//        origin2D = K * ModelMatrix.topRightCorner(3,1);
-//        origin2D(0)/=origin2D(2);
-//        origin2D(1)/=origin2D(2);
-//        char name[1];
-//        for(uint col = 0; col<MARKER; col ++){
-//            projectedPosition2D(0,col)/=projectedPosition2D(2,col);
-//            projectedPosition2D(1,col)/=projectedPosition2D(2,col);
-//
-//            float radius=10;
-//            cv::Point2f center(projectedPosition2D(0,col), projectedPosition2D(1,col));
-//            circle(img, center, radius, cv::Scalar(255, 0, 0), 4);
-//            line(img, cv::Point2f(origin2D(0),origin2D(1)), center, cv::Scalar::all(255),4);
-//            sprintf(name,"%d",markerIDs[col]);
-//            putText(img,name,center,cv::FONT_HERSHEY_SCRIPT_SIMPLEX,1,cv::Scalar::all(0));
-//        }
+        projectedPosition2D = K * pos3D.block<3,MARKER>(0,0);
+        origin2D = K * ModelMatrix.topRightCorner(3,1);
+        origin2D(0)/=origin2D(2);
+        origin2D(1)/=origin2D(2);
+        for(uint col = 0; col<MARKER; col ++){
+            projectedPosition2D(0,col)/=projectedPosition2D(2,col);
+            projectedPosition2D(1,col)/=projectedPosition2D(2,col);
+        }
 
         reprojectionError = lm->fnorm;
 
@@ -172,7 +157,7 @@ void CameraMarkerModel::checkCorrespondence(){
     Matrix3xMARKERd projectedPosition2D(3,MARKER);
     do {
         pos3D <<
-        pos3D_backup(0,perm[0]), pos3D_backup(0,perm[1]), pos3D_backup(0,perm[2]), pos3D_backup(0,perm[3]),
+              pos3D_backup(0,perm[0]), pos3D_backup(0,perm[1]), pos3D_backup(0,perm[2]), pos3D_backup(0,perm[3]),
                 pos3D_backup(1,perm[0]), pos3D_backup(1,perm[1]), pos3D_backup(1,perm[2]), pos3D_backup(1,perm[3]),
                 pos3D_backup(2,perm[0]), pos3D_backup(2,perm[1]), pos3D_backup(2,perm[2]), pos3D_backup(2,perm[3]),
                 1,1,1,1;
@@ -193,7 +178,7 @@ void CameraMarkerModel::checkCorrespondence(){
 //    printf("assignement: %d %d %d %d, error: %f\n", bestPerm[0], bestPerm[1], bestPerm[2], bestPerm[3], minError);
 
     pos3D <<
-    pos3D_backup(0, bestPerm[0]), pos3D_backup(0, bestPerm[1]), pos3D_backup(0, bestPerm[2]), pos3D_backup(0, bestPerm[3]),
+          pos3D_backup(0, bestPerm[0]), pos3D_backup(0, bestPerm[1]), pos3D_backup(0, bestPerm[2]), pos3D_backup(0, bestPerm[3]),
             pos3D_backup(1, bestPerm[0]), pos3D_backup(1, bestPerm[1]), pos3D_backup(1, bestPerm[2]), pos3D_backup(1, bestPerm[3]),
             pos3D_backup(2, bestPerm[0]), pos3D_backup(2, bestPerm[1]), pos3D_backup(2, bestPerm[2]), pos3D_backup(2, bestPerm[3]),
             1, 1, 1, 1;
@@ -278,101 +263,4 @@ int CameraMarkerModel::operator()(const VectorXd &x, VectorXd &fvec) const
 //        cout << "error : " << difference.squaredNorm() <<endl;
 //        cout << "x : " << x <<endl;
     return 0;
-}
-
-MarkerTracker::MarkerTracker(){
-    spinner = new ros::AsyncSpinner(5);
-    spinner->start();
-    marker_position_sub = nh.subscribe("/raspicamera/marker_position", 1, &MarkerTracker::pipe2function, this);
-    rviz_marker_pub=nh.advertise<visualization_msgs::Marker>("/visualization_marker", 1000);
-    camera_control_pub=nh.advertise<communication::CameraControl>("/camera_control", 1000);
-    video_sub=nh.subscribe("/raspicamera/video", 1, &MarkerTracker::videoCB, this);
-}
-
-MarkerTracker::~MarkerTracker() {
-    spinner->stop();
-    delete spinner;
-}
-
-bool MarkerTracker::init() {
-    ROS_INFO("please stand in front of cameras");
-    initialized = false;
-    ros::Duration d(1.0);
-    while(!initialized)
-        d.sleep();
-    return true;
-}
-
-void MarkerTracker::pipe2function(const communication::MarkerPosition::ConstPtr& msg){
-    // check if camera was already registered
-    auto it = camera.find(msg->cameraID);
-    if(it != camera.end()) // camera already registered
-    {
-        camera[msg->cameraID].markerVisible = msg->markerVisible;
-        camera[msg->cameraID].fps = msg->fps;
-        switch(cameraState[msg->cameraID]){
-            case Uninitialized:{
-                cameraState[msg->cameraID] = it->second.initializeModel(msg);
-                break;
-            }
-            case Initialized:{
-                bool allInitialized = true;
-                for(auto state = cameraState.begin(); state != cameraState.end(); ++state){
-                    if(state->second==Uninitialized)
-                        allInitialized = false;
-                }
-                if(allInitialized) { // if all cameras are initialized, set initialized flag and cameraState to Tracking
-                    initialized = true;
-                    for(auto state = cameraState.begin(); state != cameraState.end(); ++state) {
-                        state->second = Tracking; // TODO: possibly find trafo between cameras here
-                    }
-                }else{
-                    initialized = false;
-                }
-                break;
-            }
-            case Tracking:{
-                cameraState[msg->cameraID] = it->second.track(msg);
-                break;
-            }
-            case Error:{
-                cameraState[msg->cameraID] = Tracking; // TODO: error handling
-                break;
-            }
-        }
-    }else{ // register new camera
-        camera[msg->cameraID].id = msg->cameraID;
-        sprintf(camera[msg->cameraID].name, "camera %d", msg->cameraID);
-        cameraState[msg->cameraID] = Uninitialized;
-    }
-}
-
-bool MarkerTracker::sendCameraControl(uint ID, uint control, bool value){
-    // check if camera exists
-    auto it = camera.find(ID);
-    if(it != camera.end())
-    {
-        communication::CameraControl msg;
-        msg.cameraID = ID;
-        msg.control = control;
-        switch(control) {
-            case toggleVideoStream:
-                msg.value1 = value;
-                break;
-            default:
-                return false;
-        }
-        camera_control_pub.publish(msg);
-    }
-    return false;
-}
-
-void MarkerTracker::videoCB(const sensor_msgs::ImageConstPtr& msg){
-    lockWhileWriting = true;
-    try {
-        cv_ptr = cv_bridge::toCvCopy(msg, "mono8");
-    } catch (cv_bridge::Exception& e) {
-        ROS_ERROR("cv_bridge exception: %s", e.what());
-    }
-    lockWhileWriting = false;
 }

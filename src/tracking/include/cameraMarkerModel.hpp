@@ -1,4 +1,6 @@
-#pragma once
+// std
+#include <string>
+#include <vector>
 // eigen
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -9,29 +11,13 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-// std
-#include <string>
-#include <vector>
-#include <iostream>
-#include <algorithm>
-#include <thread>
-#include <future>
-#define GLM_FORCE_RADIANS
-#include <glm/detail/type_mat.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-// ros
-#include <ros/ros.h>
-#include <communication/Vector2.h>
+// messages
 #include <communication/MarkerPosition.h>
-#include <communication/CameraControl.h>
-#include <visualization_msgs/Marker.h>
-#include <image_transport/image_transport.h>
-#include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/image_encodings.h>
 
 #define MARKER 4
 using namespace std;
 using namespace Eigen;
+using namespace cv;
 
 typedef enum
 {
@@ -85,6 +71,7 @@ struct CameraMarkerModel:Functor<double>{
     Vector4d origin3D;
     Vector3d origin2D;
     Matrix3xMARKERd pos2D;// ((x y 1)' (x y 1)' ... )
+    Matrix3xMARKERd projectedPosition2D;// ((x y 1)' (x y 1)' ... )
     cv::Mat img, img_rectified;
     cv::Mat map1, map2;
     cv::VideoCapture capture;
@@ -99,43 +86,3 @@ struct CameraMarkerModel:Functor<double>{
     uint markerVisible = 0;
     float fps = 0;
 };
-
-class MarkerTracker{
-public:
-    /** Constructor */
-    MarkerTracker();
-    /** Destructor */
-    ~MarkerTracker();
-    /**
-     * Sets initialized=false and waits for successful initialization of all cameras
-     * @return success
-     */
-    bool init();
-    /**
-     * This is the callback function for the marker positions,
-     * depending on the cameraID and the cameras state, these are passed to the responsible Models
-     * @param msg MarkerPosition message, containing seq, timestamp, position in image, cameraID
-     */
-    void pipe2function(const communication::MarkerPosition::ConstPtr& msg);
-
-    bool sendCameraControl(uint ID, uint control, bool value);
-
-    void videoCB(const sensor_msgs::ImageConstPtr& msg);
-
-    Matrix4d ModelMatrix;
-
-    ros::NodeHandle nh;
-    ros::Subscriber marker_position_sub, video_sub;
-    ros::Publisher rviz_marker_pub, camera_control_pub;
-    std::map<int, CameraMarkerModel> camera;
-    std::map<int, int> cameraState;
-    enum{
-        toggleVideoStream = 0
-    }cameraControls;
-    cv_bridge::CvImageConstPtr cv_ptr;
-    bool lockWhileWriting = false;
-private:
-    ros::AsyncSpinner *spinner;
-    bool initialized = false;
-};
-

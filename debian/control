@@ -2,12 +2,12 @@ Source: mocap
 Section: misc
 Priority: extra
 Maintainer: Simon Trendel <simon.trendel@tum.de>
-Build-Depends: debhelper (>= 9.0.0), ros-indigo-catkin, ros-indigo-message-generation, ros-indigo-message-runtime, ros-indigo-roscpp, ros-indigo-std-msgs, ros-indigo-genmsg, ros-indigo-rospy, eigen3, libsfml-dev, libimagemagick, opencv3
+Build-Depends: debhelper (>= 9.0.0), ros-indigo-catkin, ros-indigo-message-generation, ros-indigo-message-runtime, ros-indigo-roscpp, ros-indigo-std-msgs, ros-indigo-genmsg, ros-indigo-rospy, ros-indigo-sensor-msgs, ros-indigo-cv-bridge, ros-indigo-image-transport, ros-indigo-visualization-msgs, libeigen3-dev, libopencv-dev, libncurses5-dev
 Homepage: 
 Standards-Version: 3.9.5
 
 Package: mocap
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, ros-indigo-catkin, ros-indigo-message-generation, ros-indigo-message-runtime, ros-indigo-roscpp, ros-indigo-std-msgs, ros-indigo-genmsg, ros-indigo-rospy, opencv3
+Depends: ${shlibs:Depends}, ${misc:Depends}, ros-indigo-catkin, ros-indigo-message-generation, ros-indigo-message-runtime, ros-indigo-roscpp, ros-indigo-std-msgs, ros-indigo-genmsg, ros-indigo-rospy, ros-indigo-sensor-msgs, ros-indigo-cv-bridge, ros-indigo-image-transport, ros-indigo-visualization-msgs, libeigen3-dev, libopencv-dev, libncurses5-dev
 Description: modular motion capture system
  using raspberry pi 3 with NoIR-camera module
