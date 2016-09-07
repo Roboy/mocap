@@ -1,0 +1,9 @@
+<library path="libmocap_rviz">
+  <class name="MocapPlugin"
+         type="MocapPlugin"
+         base_class_type="rviz::Panel">
+    <description>
+      A panel widget for mocap
+    </description>
+  </class>
+</library>

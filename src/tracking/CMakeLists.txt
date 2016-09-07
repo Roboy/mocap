@@ -7,23 +7,29 @@ SET(CMAKE_BUILD_TYPE Debug FORCE)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++11 -DMAGICKCORE_QUANTUM_DEPTH=16 -DMAGICKCORE_HDRI_ENABLE=0")
 
 # ros
-find_package(catkin REQUIRED COMPONENTS roscpp std_msgs sensor_msgs cv_bridge image_transport visualization_msgs)
+find_package(catkin REQUIRED COMPONENTS roscpp std_msgs sensor_msgs cv_bridge image_transport visualization_msgs rviz)
 catkin_package(CATKIN_DEPENDS message_runtime)
 
 execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE PROCESSORTYPE)
-if ( PROCESSORTYPE STREQUAL "armhf")
+if (PROCESSORTYPE STREQUAL "armhf")
     message(STATUS "tracking_node is supposed to run on host not raspi, aborting generation")
 else ()
     #==============================================================================
     # Dependencies
     #==============================================================================
+    #Qt4
+    find_package(Qt4)
+    find_package(Protobuf REQUIRED)
+    include(${QT_USE_FILE})
+    add_definitions(${QT_DEFINITIONS})
+
     # Eigen
     find_package(PkgConfig)
     pkg_check_modules(EIGEN3 REQUIRED eigen3)
     include_directories(${EIGEN3_INCLUDE_DIRS})
 
     # OpenCV
-    find_package(OpenCV COMPONENTS opencv_core opencv_highgui opencv_imgproc opencv_calib3d REQUIRED)
+    find_package(OpenCV 2.4.12 EXACT COMPONENTS opencv_core opencv_highgui opencv_imgproc opencv_calib3d REQUIRED)
 
     # ncurse
     pkg_check_modules(ncurses REQUIRED ncurses)
@@ -36,23 +42,23 @@ else ()
     #==============================================================================
     # Application
     #==============================================================================
-
-    ADD_EXECUTABLE(tracking_node src/markertracker.cpp src/main.cpp src/cameraMarkerModel.cpp)
-    add_dependencies(tracking_node communication_gencpp)
-    TARGET_LINK_LIBRARIES(tracking_node ${OpenCV_LIBS}  ${catkin_LIBRARIES} ${ncurses_LIBRARIES} -lpthread )
+    qt4_wrap_cpp(MOC_FILES include/mocap_plugin.hpp)
+    add_library(mocap_rviz src/mocap_plugin.cpp src/cameraMarkerModel.cpp ${MOC_FILES})
+    add_dependencies(mocap_rviz communication_gencpp)
+    target_link_libraries(mocap_rviz ${QT_LIBRARIES} ${catkin_LIBRARIES})
 
     #==============================================================================
     # Installation
     #==============================================================================
-    install( TARGETS        
-             tracking_node
-             DESTINATION
-	     ${CATKIN_PACKAGE_BIN_DESTINATION}
-    )
-    install(FILES 
-    	    package.xml
+    install(TARGETS
+            mocap_rviz
+            DESTINATION
+            ${CATKIN_PACKAGE_LIB_DESTINATION}
+            )
+    install(FILES
+            package.xml
             DESTINATION
             ${CATKIN_PACKAGE_SHARE_DESTINATION}
-    )
+            )
 
 endif ()
