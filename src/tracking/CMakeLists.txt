@@ -38,6 +38,7 @@ else ()
     include_directories(
             ${catkin_INCLUDE_DIRS}
             include/
+            ${CMAKE_CURRENT_SOURCE_DIR}/../communication/include
     )
     #==============================================================================
     # Application

@@ -2,6 +2,23 @@
 
 MocapPlugin::MocapPlugin(QWidget *parent)
         : rviz::Panel(parent) {
+    if (!ros::isInitialized()) {
+        int argc = 0;
+        char **argv = NULL;
+        ros::init(argc, argv, "MocapRvizPlugin",
+                  ros::init_options::NoSigintHandler | ros::init_options::AnonymousName);
+    }
+
+    nh = new ros::NodeHandle;
+
+    spinner = new ros::AsyncSpinner(3);
+
+    camera_control_pub = nh->advertise<communication::CameraControl>("/mocap/camera_control", 100);
+    id_sub = nh->subscribe("/mocap/cameraID", 100, &MocapPlugin::updateId, this);
+    video_sub = nh->subscribe("/mocap/video", 1, &MocapPlugin::videoCB, this);
+    marker_position_sub = nh->subscribe("/mocap/marker_position", 100, &MocapPlugin::pipe2function, this);
+    rviz_marker_pub = nh->advertise<visualization_msgs::Marker>("/visualization_marker", 100);
+
     // Create the main layout
     QHBoxLayout *mainLayout = new QHBoxLayout;
 
@@ -20,6 +37,13 @@ MocapPlugin::MocapPlugin(QWidget *parent)
     LightWidget *mocapStatus = new LightWidget();
     mocapStatus->setObjectName("mocapStatus");
     cameraStatusLayout->addWidget(mocapStatus);
+
+    QSlider *slider = new QSlider(Qt::Horizontal, this);
+    connect(slider, SIGNAL(valueChanged(int)), this, SLOT(publishThreshold(int)));
+    slider->setTickInterval(1);
+    slider->setRange(0, 255);
+    slider->setSliderPosition(240);
+    frameLayout->addWidget(slider);
 
     QTableWidget *table = new QTableWidget(3, 2);
     table->setObjectName("table");
@@ -57,23 +81,6 @@ MocapPlugin::MocapPlugin(QWidget *parent)
     mainLayout->setContentsMargins(0, 0, 0, 0);
 
     this->setLayout(mainLayout);
-
-    if (!ros::isInitialized()) {
-        int argc = 0;
-        char **argv = NULL;
-        ros::init(argc, argv, "MocapRvizPlugin",
-                  ros::init_options::NoSigintHandler | ros::init_options::AnonymousName);
-    }
-
-    nh = new ros::NodeHandle;
-
-    spinner = new ros::AsyncSpinner(3);
-
-    camera_control_pub = nh->advertise<communication::CameraControl>("/mocap/camera_control", 100);
-    id_sub = nh->subscribe("/mocap/cameraID", 100, &MocapPlugin::updateId, this);
-    video_sub = nh->subscribe("/mocap/video", 1, &MocapPlugin::videoCB, this);
-    marker_position_sub = nh->subscribe("/mocap/marker_position", 100, &MocapPlugin::pipe2function, this);
-    rviz_marker_pub = nh->advertise<visualization_msgs::Marker>("/visualization_marker", 100);
 }
 
 MocapPlugin::~MocapPlugin() {
@@ -149,12 +156,7 @@ void MocapPlugin::pipe2function(const communication::MarkerPosition::ConstPtr &m
                     mesh.scale.y = 1.0;
                     mesh.scale.z = 1.0;
                     mesh.lifetime = ros::Duration();
-                    if (add) {
-                        mesh.action = visualization_msgs::Marker::ADD;
-                        add = false;
-                    } else {
-                        mesh.action = visualization_msgs::Marker::MODIFY;
-                    }
+                    mesh.action = visualization_msgs::Marker::ADD;
                     mesh.header.stamp = ros::Time::now();
                     mesh.id = 80;
                     Matrix3d pose = camera[msg->cameraID].ModelMatrix.topLeftCorner(3, 3);
@@ -167,7 +169,7 @@ void MocapPlugin::pipe2function(const communication::MarkerPosition::ConstPtr &m
                     mesh.pose.orientation.y = q.y();
                     mesh.pose.orientation.z = q.z();
                     mesh.pose.orientation.w = q.w();
-                    mesh.mesh_resource = "package://tracking_node/models/markermodel.dae";
+                    mesh.mesh_resource = "package://tracking_node/models/markermodel.STL";
                     rviz_marker_pub.publish(mesh);
                 }
                 break;
@@ -197,9 +199,9 @@ void MocapPlugin::streamCamera(int state) {
     msg.cameraID = currentID.second;
     msg.control = toggleVideoStream;
     if (state == Qt::Checked)
-        msg.value1 = true;
+        msg.boolValue = true;
     else if (state == Qt::Unchecked)
-        msg.value1 = false;
+        msg.boolValue = false;
     camera_control_pub.publish(msg);
 }
 
@@ -213,6 +215,7 @@ void MocapPlugin::videoCB(const sensor_msgs::ImageConstPtr &msg) {
     try {
         cv_ptr = cv_bridge::toCvCopy(msg, "mono8");
         cv_ptr->image.copyTo(img);
+        flip(img,img,1);
     } catch (cv_bridge::Exception &e) {
         ROS_ERROR("cv_bridge exception: %s", e.what());
     }
@@ -255,4 +258,11 @@ void MocapPlugin::updateId(const std_msgs::Int32::ConstPtr &msg) {
     }
 }
 
+void MocapPlugin::publishThreshold(int threshold) {
+    communication::CameraControl msg;
+    msg.cameraID = currentID.second;
+    msg.control = changeThreshold;
+    msg.intValue = threshold;
+    camera_control_pub.publish(msg);
+}
 PLUGINLIB_EXPORT_CLASS(MocapPlugin, rviz::Panel)

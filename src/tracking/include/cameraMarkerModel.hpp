@@ -13,6 +13,8 @@
 #include <opencv2/imgproc/imgproc.hpp>
 // messages
 #include <communication/MarkerPosition.h>
+// ros
+#include <ros/ros.h>
 
 #define MARKER 4
 using namespace std;
@@ -87,17 +89,7 @@ struct CameraMarkerModel:Functor<double>{
      * This function calculates the pose matrix from the current pose of the tracked model
      * @param RT reference to double pose matrix (will be filled)
      */
-    void getRTmatrix(Matrix3x4d &RT);
-    /**
-     * This function calculates the pose matrix from the current pose of the tracked model
-     * @param RT reference to double pose matrix (will be filled)
-     */
-    void getRTmatrix(Matrix4d &RT);
-    /**
-     * This function calculates the pose matrix from the current pose of the tracked model
-     * @param RT reference to float pose matrix (will be filled)
-     */
-    void getRTmatrix(Matrix4f &RT);
+    template<typename T> void getRTmatrix(T &RT);
     /**
      * Function used by minimizer
      * @param x pose vector (3 translation, 3 rotation parameters)

@@ -22,12 +22,15 @@
 #include <QTableWidget>
 #include <QComboBox>
 #include <QTimer>
+#include <QSlider>
 // messages
 #include "communication/CameraControl.h"
 #include "communication/MarkerPosition.h"
 #include <visualization_msgs/Marker.h>
 #include <std_msgs/Int32.h>
 #include "cameraMarkerModel.hpp"
+// common definitions
+#include "CommonDefinitions.hpp"
 
 #endif
 
@@ -97,6 +100,8 @@ public Q_SLOTS:
 
     void videoCB(const sensor_msgs::ImageConstPtr& msg);
 
+    void publishThreshold(int threshold);
+
 private:
     void updateId(const std_msgs::Int32::ConstPtr &msg);
 
@@ -109,10 +114,6 @@ private:
     cv_bridge::CvImageConstPtr cv_ptr;
     Mat img;
     bool lockWhileWriting = false;
-    enum{
-        toggleVideoStream = 0
-    }cameraControls;
-
     Matrix4d ModelMatrix;
     map<int, CameraMarkerModel> camera;
     map<int, int> cameraState;

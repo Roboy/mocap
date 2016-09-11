@@ -24,11 +24,11 @@ CameraMarkerModel::CameraMarkerModel(void): Functor<double>(6,2*MARKER){
 };
 
 int CameraMarkerModel::initializeModel(const communication::MarkerPosition::ConstPtr& msg){
-    // this is the representation of the marker
-    pos3D(0,0)=0;       pos3D(1,0)=-0.104;   pos3D(2,0)=0;       pos3D(3,0)=1;
-    pos3D(0,1)=0;       pos3D(1,1)=0;       pos3D(2,1)=-0.05;   pos3D(3,1)=1;
+    // this is the representation of the marker, when initializing, this is the first estimate
+    pos3D(0,0)=0.133;  pos3D(1,0)=0;       pos3D(2,0)=0;  pos3D(3,0)=1;
+    pos3D(0,1)=0;       pos3D(1,1)=0;       pos3D(2,1)=0.05;   pos3D(3,1)=1;
     pos3D(0,2)=-0.073;   pos3D(1,2)=0;       pos3D(2,2)=0;       pos3D(3,2)=1;
-    pos3D(0,3)=0.133;  pos3D(1,3)=0;       pos3D(2,3)=0;  pos3D(3,3)=1;
+    pos3D(0,3)=0;       pos3D(1,3)=-0.104;   pos3D(2,3)=0;       pos3D(3,3)=1;
 
     origin3D << 0,0,0,1;
     origin2D << 0,0,1;
@@ -44,22 +44,25 @@ int CameraMarkerModel::initializeModel(const communication::MarkerPosition::Cons
              });
 
         // write those positions to the model
-        pos2D(0, 0) = positions[1].y > positions[2].y ? positions[2].x : positions[1].x;
-        pos2D(1, 0) = positions[1].y > positions[2].y ? positions[2].y : positions[1].y;
+        pos2D(0, 0) = positions[0].x;
+        pos2D(1, 0) = positions[0].y;
         pos2D(2, 0) = 1;
-        pos2D(0, 1) = positions[1].y < positions[2].y ? positions[2].x : positions[1].x;
-        pos2D(1, 1) = positions[1].y < positions[2].y ? positions[2].y : positions[1].y;
+        markerIDs[0] = 0;
+        pos2D(0, 1) = positions[1].y > positions[2].y ? positions[1].x : positions[2].x;
+        pos2D(1, 1) = positions[1].y > positions[2].y ? positions[1].y : positions[2].y;
         pos2D(2, 1) = 1;
-        pos2D(0, 2) = positions[0].x;
-        pos2D(1, 2) = positions[0].y;
-        pos2D(2, 2) = 1;
-        pos2D(0, 3) = positions[3].x;
-        pos2D(1, 3) = positions[3].y;
+        markerIDs[1] = 1;
+        pos2D(0, 2) = positions[3].x;
+        pos2D(1, 2) = positions[3].y;
+        pos2D(2, 2) = 2;
+        markerIDs[2] = 2;
+        pos2D(0, 3) = positions[1].y < positions[2].y ? positions[1].x : positions[2].x;
+        pos2D(1, 3) = positions[1].y < positions[2].y ? positions[1].y : positions[2].y;
         pos2D(2, 3) = 1;
+        markerIDs[3] = 3;
+
 //    cout << "pos2D: \n" << pos2D << endl;
 
-        for (uint id = 0; id < MARKER; id++)
-            markerIDs[id] = id;
 
         // find the pose
         pose << 0, 0, 0, 0, 0, 1;
@@ -103,7 +106,7 @@ int CameraMarkerModel::track(const communication::MarkerPosition::ConstPtr& msg)
         // need to instantiate new lm every iteration so it will be using the new positions
         numDiff = new NumericalDiff<CameraMarkerModel>(*this);
         lm = new Eigen::LevenbergMarquardt<Eigen::NumericalDiff<CameraMarkerModel>, double> (*numDiff);
-        lm->parameters.maxfev = 500;
+        lm->parameters.maxfev = 2000;
         lm->parameters.xtol = 1.0e-10;
         int ret = lm->minimize(pose);
 //                    cout << "iterations: " << lm->iter << endl;
@@ -123,14 +126,14 @@ int CameraMarkerModel::track(const communication::MarkerPosition::ConstPtr& msg)
 
 void CameraMarkerModel::checkCorrespondence(){
     Matrix3x4d RT;
-    getRTmatrix(RT);
+    getRTmatrix<Matrix3x4d>(RT);
     Matrix4xMARKERd pos3D_backup = pos3D;
 
     vector<uint> perm = {0,1,2,3};
     double minError = 1e10;
     vector<uint> bestPerm = {0,1,2,3};
-    cv::Mat img = cv::Mat::zeros(cv::Size(640,480),CV_8UC3);
 
+    // permute all marker assignments and take the one with lowest reprojection error
     Matrix3xMARKERd projectedPosition2D(3,MARKER);
     do {
         pos3D <<
@@ -163,7 +166,7 @@ void CameraMarkerModel::checkCorrespondence(){
 
 void CameraMarkerModel::updateProjectedMarkerPositions(){
     Matrix4d RT;
-    getRTmatrix(RT);
+    getRTmatrix<Matrix4d>(RT);
 //                    cout << "RT: \n" << RT << endl;
     pos3D = RT*pos3D;
     ModelMatrix = RT*ModelMatrix;
@@ -187,37 +190,11 @@ void CameraMarkerModel::projectInto2D(Matrix3xMARKERd &position2d, Matrix4xMARKE
     }
 }
 
-void CameraMarkerModel::getRTmatrix(Matrix3x4d &RT){
-    RT = MatrixXd::Identity(3,4);
+template<typename T> void CameraMarkerModel::getRTmatrix(T &RT){
+    RT = T::Identity();
     // construct quaternion (cf unit-sphere projection Terzakis paper)
     double alpha_squared = pow(pow(pose(0),2.0)+pow(pose(1),2.0)+pow(pose(2),2.0),2.0);
     Quaterniond q((1-alpha_squared)/(alpha_squared+1),
-                  2.0*pose(0)/(alpha_squared+1),
-                  2.0*pose(1)/(alpha_squared+1),
-                  2.0*pose(2)/(alpha_squared+1));
-    // construct RT matrix
-    RT.topLeftCorner(3,3) = q.toRotationMatrix();
-    RT.topRightCorner(3,1) << pose(3), pose(4), pose(5);
-}
-
-void CameraMarkerModel::getRTmatrix(Matrix4d &RT){
-    RT = Matrix4d::Identity();
-    // construct quaternion (cf unit-sphere projection Terzakis paper)
-    double alpha_squared = pow(pow(pose(0),2.0)+pow(pose(1),2.0)+pow(pose(2),2.0),2.0);
-    Quaterniond q((1-alpha_squared)/(alpha_squared+1),
-                  2.0*pose(0)/(alpha_squared+1),
-                  2.0*pose(1)/(alpha_squared+1),
-                  2.0*pose(2)/(alpha_squared+1));
-    // construct RT matrix
-    RT.topLeftCorner(3,3) = q.toRotationMatrix();
-    RT.topRightCorner(3,1) << pose(3), pose(4), pose(5);
-}
-
-void CameraMarkerModel::getRTmatrix(Matrix4f &RT){
-    RT = Matrix4f::Identity();
-    // construct quaternion (cf unit-sphere projection Terzakis paper)
-    float alpha_squared = powf(powf(pose(0),2.0f)+powf(pose(1),2.0f)+powf(pose(2),2.0f),2.0f);
-    Quaternionf q((1-alpha_squared)/(alpha_squared+1),
                   2.0*pose(0)/(alpha_squared+1),
                   2.0*pose(1)/(alpha_squared+1),
                   2.0*pose(2)/(alpha_squared+1));

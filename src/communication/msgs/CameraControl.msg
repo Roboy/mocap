@@ -1,5 +1,5 @@
 int32 cameraID
 int32 control
-bool value1
-int32 value2
-float32 value3
+bool boolValue
+int32 intValue
+float32 floatValue
