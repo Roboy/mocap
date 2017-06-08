@@ -6,7 +6,7 @@ CameraMarkerModel::CameraMarkerModel(void): Functor<double>(6,2*MARKER){
     Trafo2FirstCamera = Matrix4d::Identity();
 
     cv::Mat cameraMatrix, distCoeffs;
-    cv::FileStorage fs("/home/letrend/workspace/mocap/src/intrinsics.xml",cv::FileStorage::READ);
+    cv::FileStorage fs("/home/roboy/workspace/mocap/src/intrinsics.xml",cv::FileStorage::READ);
     fs["camera_matrix"] >> cameraMatrix;
     fs["distortion_coefficients"] >> distCoeffs;
     fs.release();

@@ -12,16 +12,24 @@ if (IAMRASPBERRYPI3)
 else ()
 	message(STATUS ${PROCESSORTYPE})
     # ros
-    find_package(catkin REQUIRED COMPONENTS roscpp std_msgs sensor_msgs cv_bridge image_transport visualization_msgs rviz)
-    catkin_package(CATKIN_DEPENDS message_runtime)
+    find_package(catkin REQUIRED COMPONENTS roscpp std_msgs sensor_msgs cv_bridge image_transport visualization_msgs rviz communication)
+    catkin_package(CATKIN_DEPENDS message_runtime communication)
     #==============================================================================
     # Dependencies
     #==============================================================================
-    #Qt4
-    find_package(Qt4)
+    #Qt5
+    set(CMAKE_INCLUDE_CURRENT_DIR ON)
+    set(CMAKE_AUTOMOC ON)
+    find_package(Qt5 REQUIRED COMPONENTS Widgets Core Gui)
+    include_directories(
+            ${catkin_INCLUDE_DIRS}
+            ${Qt5Widgets_INCLUDE_DIRS}
+            ${Qt5Core_INCLUDE_DIRS}
+            ${Qt5Gui_INCLUDE_DIRS}
+            ${eigen3_INCLUDE_DIR}
+    )
+
     find_package(Protobuf REQUIRED)
-    include(${QT_USE_FILE})
-    add_definitions(${QT_DEFINITIONS})
 
     # Eigen
     find_package(PkgConfig)
@@ -29,7 +37,7 @@ else ()
     include_directories(${EIGEN3_INCLUDE_DIRS})
 
     # OpenCV
-    find_package(OpenCV 2.4.12 EXACT COMPONENTS opencv_core opencv_highgui opencv_imgproc opencv_calib3d REQUIRED)
+    find_package(OpenCV COMPONENTS opencv_core opencv_highgui opencv_imgproc opencv_calib3d REQUIRED)
 
     # ncurse
     pkg_check_modules(ncurses REQUIRED ncurses)
@@ -43,7 +51,7 @@ else ()
     #==============================================================================
     # Application
     #==============================================================================
-    qt4_wrap_cpp(MOC_FILES include/mocap_plugin.hpp)
+    qt5_wrap_cpp(MOC_FILES include/mocap_plugin.hpp)
     add_library(mocap_rviz src/mocap_plugin.cpp src/cameraMarkerModel.cpp ${MOC_FILES})
     add_dependencies(mocap_rviz communication_gencpp)
     target_link_libraries(mocap_rviz ${QT_LIBRARIES} ${catkin_LIBRARIES})
