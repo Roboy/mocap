@@ -25,10 +25,10 @@ CameraMarkerModel::CameraMarkerModel(void): Functor<double>(6,2*MARKER){
 
 int CameraMarkerModel::initializeModel(const communication::MarkerPosition::ConstPtr& msg){
     // this is the representation of the marker, when initializing, this is the first estimate
-    pos3D(0,0)=0.133;  pos3D(1,0)=0;       pos3D(2,0)=0;  pos3D(3,0)=1;
-    pos3D(0,1)=0;       pos3D(1,1)=0;       pos3D(2,1)=0.05;   pos3D(3,1)=1;
-    pos3D(0,2)=-0.073;   pos3D(1,2)=0;       pos3D(2,2)=0;       pos3D(3,2)=1;
-    pos3D(0,3)=0;       pos3D(1,3)=-0.104;   pos3D(2,3)=0;       pos3D(3,3)=1;
+    pos3D(0,0)=0;       pos3D(1,0)=-0.133;      pos3D(2,0)=0;       pos3D(3,0)=1;
+    pos3D(0,1)=0;       pos3D(1,1)=0;           pos3D(2,1)=-0.05;   pos3D(3,1)=1;
+    pos3D(0,2)=0;       pos3D(1,2)=0.073;       pos3D(2,2)=0;       pos3D(3,2)=1;
+    pos3D(0,3)=0.104;   pos3D(1,3)=0;           pos3D(2,3)=0;       pos3D(3,3)=1;
 
     origin3D << 0,0,0,1;
     origin2D << 0,0,1;
@@ -40,7 +40,7 @@ int CameraMarkerModel::initializeModel(const communication::MarkerPosition::Cons
         vector<communication::Vector2> positions = msg->marker_position;
         sort(positions.begin(), positions.end(),
              [](const communication::Vector2 &a, const communication::Vector2 &b) -> bool {
-                 return a.x <= b.x;
+                 return a.y <= b.y;
              });
 
         // write those positions to the model
@@ -48,16 +48,16 @@ int CameraMarkerModel::initializeModel(const communication::MarkerPosition::Cons
         pos2D(1, 0) = positions[0].y;
         pos2D(2, 0) = 1;
         markerIDs[0] = 0;
-        pos2D(0, 1) = positions[1].y > positions[2].y ? positions[1].x : positions[2].x;
-        pos2D(1, 1) = positions[1].y > positions[2].y ? positions[1].y : positions[2].y;
+        pos2D(0, 1) = positions[1].x < positions[2].x ? positions[1].x : positions[2].x;
+        pos2D(1, 1) = positions[1].x < positions[2].x ? positions[1].y : positions[2].y;
         pos2D(2, 1) = 1;
         markerIDs[1] = 1;
         pos2D(0, 2) = positions[3].x;
         pos2D(1, 2) = positions[3].y;
         pos2D(2, 2) = 2;
         markerIDs[2] = 2;
-        pos2D(0, 3) = positions[1].y < positions[2].y ? positions[1].x : positions[2].x;
-        pos2D(1, 3) = positions[1].y < positions[2].y ? positions[1].y : positions[2].y;
+        pos2D(0, 3) = positions[1].x > positions[2].x ? positions[1].x : positions[2].x;
+        pos2D(1, 3) = positions[1].x > positions[2].x ? positions[1].y : positions[2].y;
         pos2D(2, 3) = 1;
         markerIDs[3] = 3;
 
