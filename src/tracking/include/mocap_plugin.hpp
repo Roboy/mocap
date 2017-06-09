@@ -26,6 +26,7 @@
 // messages
 #include "communication/CameraControl.h"
 #include "communication/MarkerPosition.h"
+#include <geometry_msgs/Pose.h>
 #include <visualization_msgs/Marker.h>
 #include <std_msgs/Int32.h>
 #include "cameraMarkerModel.hpp"
@@ -109,7 +110,7 @@ private:
     bool initialized = false;
     pair<uint, uint> currentID;
     ros::AsyncSpinner *spinner;
-    ros::Publisher camera_control_pub, rviz_marker_pub;
+    ros::Publisher camera_control_pub, rviz_marker_pub, pose_pub;
     ros::Subscriber id_sub, video_sub, marker_position_sub;
     cv_bridge::CvImageConstPtr cv_ptr;
     Mat img;

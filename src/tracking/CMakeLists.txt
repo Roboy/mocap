@@ -12,7 +12,7 @@ if (IAMRASPBERRYPI3)
 else ()
 	message(STATUS ${PROCESSORTYPE})
     # ros
-    find_package(catkin REQUIRED COMPONENTS roscpp std_msgs sensor_msgs cv_bridge image_transport visualization_msgs rviz communication)
+    find_package(catkin REQUIRED COMPONENTS roscpp std_msgs geometry_msgs sensor_msgs cv_bridge image_transport visualization_msgs rviz communication)
     catkin_package(CATKIN_DEPENDS message_runtime communication)
     #==============================================================================
     # Dependencies

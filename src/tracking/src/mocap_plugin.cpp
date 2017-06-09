@@ -18,6 +18,7 @@ MocapPlugin::MocapPlugin(QWidget *parent)
     video_sub = nh->subscribe("/mocap/video", 1, &MocapPlugin::videoCB, this);
     marker_position_sub = nh->subscribe("/mocap/marker_position", 100, &MocapPlugin::pipe2function, this);
     rviz_marker_pub = nh->advertise<visualization_msgs::Marker>("/visualization_marker", 100);
+    pose_pub = nh->advertise<geometry_msgs::Pose>("/mocap/MarkerPose", 1);
 
     // Create the main layout
     QHBoxLayout *mainLayout = new QHBoxLayout;
@@ -171,6 +172,11 @@ void MocapPlugin::pipe2function(const communication::MarkerPosition::ConstPtr &m
                     mesh.pose.orientation.w = q.w();
                     mesh.mesh_resource = "package://tracking_node/models/markermodel.STL";
                     rviz_marker_pub.publish(mesh);
+
+                    geometry_msgs::Pose pose_msg;
+                    pose_msg.orientation = mesh.pose.orientation;
+                    pose_msg.position = mesh.pose.position;
+                    pose_pub.publish(pose_msg);
                 }
                 break;
             }
