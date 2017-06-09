@@ -6,7 +6,7 @@ PROJECT(tracking_node C CXX)
 SET(CMAKE_BUILD_TYPE Debug FORCE)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++11 -DMAGICKCORE_QUANTUM_DEPTH=16 -DMAGICKCORE_HDRI_ENABLE=0")
 
-execute_process(COMMAND grep -o BCM2709 /proc/cpuinfo OUTPUT_VARIABLE IAMRASPBERRYPI3)
+execute_process(COMMAND grep -o BCM /proc/cpuinfo OUTPUT_VARIABLE IAMRASPBERRYPI3)
 if (IAMRASPBERRYPI3)
     message(STATUS "tracking_node is supposed to run on host not raspi, aborting generation")
 else ()
