@@ -166,6 +166,7 @@ void MocapPlugin::pipe2function(const communication::MarkerPosition::ConstPtr &m
                     mesh.pose.position.x = position(0);
                     mesh.pose.position.y = position(1);
                     mesh.pose.position.z = position(2);
+                    q.normalize();
                     mesh.pose.orientation.x = q.x();
                     mesh.pose.orientation.y = q.y();
                     mesh.pose.orientation.z = q.z();
